@@ -1,0 +1,14 @@
+[project]
+name = "skincare-analysis"
+version = "0.1.0"
+description = "Skincare analysis for Gen Z on TikTok data"
+authors = [
+    {name = "Hannah Schlaucher",email = "hanschlau@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch (==2.2.2)"
+]
+[tool.poetry]
+package-mode = false
