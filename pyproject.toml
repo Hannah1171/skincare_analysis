@@ -1,0 +1,23 @@
+[project]
+name = "skincare-analysis"
+version = "0.1.0"
+description = "Skincare analysis for Gen Z on TikTok data"
+authors = [
+    {name = "Hannah Schlaucher",email = "hanschlau@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch (==2.2.2)",
+    "ipykernel (>=6.29.5,<7.0.0)",
+    "notebook (>=7.4.1,<8.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "ipywidgets (>=8.1.6,<9.0.0)",
+    "numpy (==1.26.4)",
+    "matplotlib (>=3.10.1,<4.0.0)",
+    "bertopic (>=0.17.0,<0.18.0)",
+    "sentence-transformers (>=4.1.0,<5.0.0)",
+    "stopwordsiso (>=0.6.1,<0.7.0)"
+]
+[tool.poetry]
+package-mode = false
