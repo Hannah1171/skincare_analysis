@@ -21,6 +21,7 @@ def prepare_data(cache=False):
     df_comments = filter_by_date(df=df_comments)
     df_comments = detect_language(df=df_comments, text_col="comment", lang_col="comment_lang")
     df_comments = filter_by_language(df=df_comments, lang_col="comment_lang")
+    #do sentiment
     df_comments.to_csv("data/comments_posts_transcripts.csv", index=False)
 
 #prepare_data()
