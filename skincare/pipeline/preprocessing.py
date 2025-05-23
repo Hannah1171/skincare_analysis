@@ -32,6 +32,13 @@ def filter_by_date(df, date_col="createTimeISO", start="2025-02-17"):
     df["date"] = df[date_col].dt.date
     return df
 
+def filter_by_recent_days(df, date_col="createTimeISO", days=30):
+    df[date_col] = pd.to_datetime(df[date_col], utc=True, errors="coerce")
+    cutoff = df[date_col].max() - pd.Timedelta(days=days)
+    df = df[df[date_col] >= cutoff].copy()
+    df["date"] = df[date_col].dt.date
+    return df
+
 
 def preprocess_text_column(df, text_col="text_comment", new_col="clean_text"):
     """Apply full text cleaning pipeline to a single column."""
