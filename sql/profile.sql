@@ -9,6 +9,7 @@ SELECT
   authorMeta.fans AS author_fans,
   videoMeta.duration AS video_duration,
   musicMeta.musicName as music_name,
+  webVideoUrl,
   diggCount,
   shareCount,
   playCount,
