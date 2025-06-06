@@ -1,169 +1,27 @@
-'''
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
-from datetime import datetime, timedelta
-
-# --- Page Setup ---
-st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
-TIKTOK_PINK = "#FE2C55"
-
-# --- Generate Dummy Data ---
-def create_dummy_data():
-    end_date = datetime.today()
-    start_date = end_date - timedelta(days=89)
-    date_range = pd.date_range(start=start_date, end=end_date)
-
-    keywords = ["hydrating cleanser", "niacinamide serum", "retinol cream", "sunscreen spf50", "vitamin c toner"]
-    np.random.seed(42)
-
-    data = []
-    for date in date_range:
-        for keyword in keywords:
-            mentions = np.random.poisson(lam=5)
-            tfidf_score = np.random.uniform(0.1, 0.6)
-            data.append({
-                "date": date,
-                "keyword": keyword,
-                "mentions": mentions,
-                "tfidf_score": round(tfidf_score, 4)
-            })
-
-    df = pd.DataFrame(data)
-    df["date"] = pd.to_datetime(df["date"])  # Ensure datetime dtype
-    df["week"] = df["date"].dt.to_period("W")
-    df["week_start"] = df["week"].dt.to_timestamp()
-    return df
-
-df = create_dummy_data()
-
-# --- Sidebar Filters ---
-from datetime import datetime
-
-# Convert to date format for Streamlit's date_input
-min_date = df["date"].min().date()
-max_date = df["date"].max().date()
-
-# Use date_input instead of slider
-start_date, end_date = st.sidebar.date_input(
-    label="Select date range",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date
-)
-
-# Convert selected dates back to datetime for filtering
-start_datetime = datetime.combine(start_date, datetime.min.time())
-end_datetime = datetime.combine(end_date, datetime.max.time())
-
-# Filter your dataframe
-filtered_df = df[(df["date"] >= start_datetime) & (df["date"] <= end_datetime)]
-
-selected_keyword = st.sidebar.selectbox(
-    "Filter by keyword",
-    options=["All"] + sorted(df["keyword"].unique())
-)
-
-# --- Dashboard Layout ---
-st.title("🧴 Skincare TikTok Trends Dashboard")
-st.markdown(f"<h4 style='color:{TIKTOK_PINK};'>Tracking mentions and keyword scores across 90 days</h4>", unsafe_allow_html=True)
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("📈 Mentions Over Time")
-    fig_mentions = px.line(
-        filtered_df,
-        x="date",
-        y="mentions",
-        color="keyword" if selected_keyword == "All" else None,
-        color_discrete_sequence=[TIKTOK_PINK],
-        title="Mentions Trend"
-    )
-    st.plotly_chart(fig_mentions, use_container_width=True)
-
-with col2:
-    st.subheader("🔠 TF-IDF Score Over Time")
-    fig_tfidf = px.area(
-        filtered_df,
-        x="date",
-        y="tfidf_score",
-        color="keyword" if selected_keyword == "All" else None,
-        color_discrete_sequence=[TIKTOK_PINK],
-        title="TF-IDF Score Trend"
-    )
-    st.plotly_chart(fig_tfidf, use_container_width=True)
-
-# --- Top Weekly Videos Section ---
-st.subheader("🎬 Featured Videos (Weekly Top)")
-top5_weekly = pd.read_csv("data/top5_weekly.csv")
-valid_weekly = top5_weekly[top5_weekly["bucketUrl"].notna()].head(6)
-
-cols = st.columns(3)
-for i, (_, row) in enumerate(valid_weekly.iterrows()):
-    col = cols[i % 3]
-    with col:
-        st.markdown(
-            f"""
-            <iframe src="{row['bucketUrl']}" width="250" height="400" style="border:none;" allow="autoplay; fullscreen"></iframe>
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown(f"**👤 {row['author_nickName']}**")
-        st.markdown(f"📝 {row['text'][:100]}{'...' if len(row['text']) > 100 else ''}")
-        st.markdown(
-            f"""
-            👍 {row['diggCount']} 💬 {row['commentCount']} 🔁 {row['shareCount']}  
-            ▶️ {row['playCount']} 📥 {row['collectCount']}
-            """
-        )
-
-# --- Top Monthly Videos Section ---
-st.subheader("📆 Featured Videos (Monthly Top)")
-top5_monthly = pd.read_csv("data/top5_monthly.csv")
-valid_monthly = top5_monthly[top5_monthly["bucketUrl"].notna()].head(6)
-
-cols = st.columns(3)
-for i, (_, row) in enumerate(valid_monthly.iterrows()):
-    col = cols[i % 3]
-    with col:
-        st.markdown(
-            f"""
-            <iframe src="{row['bucketUrl']}" width="250" height="400" style="border:none;" allow="autoplay; fullscreen"></iframe>
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown(f"**👤 {row['author_nickName']}**")
-        st.markdown(f"📝 {row['text'][:100]}{'...' if len(row['text']) > 100 else ''}")
-        st.markdown(
-            f"""
-            👍 {row['diggCount']} 💬 {row['commentCount']} 🔁 {row['shareCount']}  
-            ▶️ {row['playCount']} 📥 {row['collectCount']}
-            """
-        )
-
-
-
-# --- Raw Data View ---
-with st.expander("🔍 View Raw Data"):
-    st.dataframe(filtered_df)
-'''
 
 # --- Imports ---
 import ast
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, rcParams
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 import numpy as np
-import circlify
+import plotly.graph_objects as go
+
 
 # --- Constants ---
 TIKTOK_PINK = "#FE2C55"
 GREY = "#d3d3d3"
 Green = "#3CB54A"
+
+rcParams.update({
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Arial", "Helvetica", "sans-serif"],
+    "font.size": 12,
+    "text.color": "black"
+})
+
 # --- Page Setup ---
 def setup_page():
     st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
@@ -226,40 +84,87 @@ def show_top_videos(df, date_col, title):
                 ▶️ {row['playCount']} 📥 {row['collectCount']}"""
             )
 
-def display_collapsible_topics(df, max_quotes: int = 3):
-    df = df[df["Topic"] != -1]
+def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
+    df = df[df["Topic"] != -1].copy()
     df["Examples"] = df["Examples"].apply(ast.literal_eval)
+    total_mentions = df["Count"].sum()
 
     st.subheader("What does Gen Z talk about?")
+    cols = st.columns(2)
 
-    for _, row in df.iterrows():
-        topic = row["NormName"] if pd.notna(row["NormName"]) else row["Name"]
-        count = int(row["Count"])
-        examples = row["Examples"][:max_quotes]
+    for idx, (_, row) in enumerate(df.iterrows()):
+        col = cols[idx % 2]
+        with col:
+            topic_name = row.get("NormName") or row.get("Name")
+            count = int(row["Count"])
+            examples = row["Examples"][:max_quotes]
+            percent = min(count / total_mentions, 1.0) * 100
 
-        with st.expander(f"🔹 {topic} ({count} mentions)"):
-            col1, col2 = st.columns([1.5, 1])
+            with st.expander(topic_name):
+                # Header section
+                col1, col2 = st.columns([1, 3])
+                with col1:
+                    st.markdown(
+                        f"<span style='color:#ee1d52; font-weight:bold'>{count} mentions</span>",
+                        unsafe_allow_html=True
+                    )
+                with col2:
+                    st.markdown(
+                        f"""
+                        <div style='background-color:#f5c0d1; border-radius:5px; height:20px; width:100%'>
+                            <div style='background-color:#ee1d52; width:{percent:.2f}%; height:100%; border-radius:5px'></div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
-            with col1:
-                st.markdown("**Example Comments**")
-                for q in examples:
-                    st.markdown(f"- *{q.strip()}*")
+                # Quotes section
+                st.markdown("<div style='color:#ee1d52; font-size:20px; font-weight:600; margin:0px 0;'>Voice of Gen Z</div>", unsafe_allow_html=True)
+                st.caption("Real comments from Tik Tok users")
+                for quote in examples:
+                    st.markdown(
+                        f"<span style='font-size:16px; color:#ee1d52; font-weight:bold;'>&ldquo;&nbsp;</span>"
+                        f"<span style='font-size:14px; color:black;'>{quote.strip()}</span>"
+                        f"<span style='font-size:16px; color:#ee1d52; font-weight:bold;'>&nbsp;&rdquo;</span>",
+                        unsafe_allow_html=True
+                    )
 
-            with col2:
-                st.markdown("**Sentiment**")
+                # Sentiment section
+                st.markdown("<div style='color:#ee1d52; font-size:20px; font-weight:600; margin-top:6px;'>Sentiment</div>", unsafe_allow_html=True)
+                st.caption("Share of comments that are positive, negative or neutral")
+
                 labels = ["Positive", "Neutral", "Negative"]
-                sizes = [
-                    row["positive_share"] if pd.notna(row["positive_share"]) else 0,
-                    row["neutral_share"] if pd.notna(row["neutral_share"]) else 0,
-                    row["negative_share"] if pd.notna(row["negative_share"]) else 0
+                values = [
+                    row.get("positive_share", 0) or 0,
+                    row.get("neutral_share", 0) or 0,
+                    row.get("negative_share", 0) or 0,
                 ]
-                colors = ["#28a745", "#6c757d", "#ee1d52"]
+                colors = ["#6FBF73", "#B0B0B0", "#D96C7C"]
+                custom_labels = [
+                    f"<span style='font-weight:bold'>{label}</span><br>{int(value * 100)}%" 
+                    for label, value in zip(labels, values)
+                ]
 
-                fig, ax = plt.subplots()
-                ax.pie(sizes, labels=labels, colors=colors, autopct='%1.0f%%', startangle=90)
-                ax.axis("equal")
-                st.pyplot(fig)
-                    
+                fig = go.Figure(data=[
+                    go.Pie(
+                        labels=custom_labels,
+                        values=values,
+                        marker=dict(colors=colors),
+                        textinfo='label',
+                        insidetextorientation='auto',
+                        hoverinfo='label+percent',
+                        textfont=dict(size=14, color='white')
+                    )
+                ])
+
+                fig.update_layout(
+                    height=300,
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    showlegend=False
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
 # --- Main App ---
 def main():
     setup_page()
