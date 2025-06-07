@@ -16,7 +16,7 @@ from gensim.corpora import Dictionary
 
 
 # Load LLM for topic name generation
-llm = pipeline("text2text-generation", model="google/flan-t5-base")
+llm = pipeline("text2text-generation", model="google/flan-t5-large")
 
 # Sentence embedding model for label deduplication
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -66,12 +66,13 @@ def generate_topic_label(keywords: str, examples: List[str]) -> str:
     prompt = (
             "You are labeling clusters of social media skincare comments.\n"
             "Your task is to generate a short, clear topic name (1–3 words max) that summarizes the main theme of the entire cluster.\n"
-            "Use noun phrases only (e.g., 'Sunscreen', 'Product reviews'). Avoid vague terms like 'discussion' or full sentences.\n"
+            "Use noun phrases only (e.g., 'Sunscreen', 'Product reviews'). Avoid vague terms like 'Love' or 'Like' or full sentences.\n"
             "Focus on specific skincare concerns, techniques, or product types that describe the cluster as a whole.\n"
             "Generalize across all examples — do not base the label on just one comment.\n"
             "Examples:\n"
             "- Double cleansing\n"
-            "- On a budget\n"
+            "- Tight budget\n"
+            "- Hair\n"
             "- Sunscreen\n"
             "- Nose taping\n"
             "- Product reviews\n"
@@ -101,7 +102,7 @@ def build_topic_model(
     hdbscan_model = HDBSCAN(
         min_cluster_size=min_cluster_size,
         min_samples=min_samples,
-        max_cluster_size=100,
+        max_cluster_size=80,
         metric="euclidean",  # cosine or euclidean
         cluster_selection_method="eom",
         prediction_data=True
@@ -166,11 +167,9 @@ def run_topic_model(
     df = df[df["textLanguage"] == "en"].copy()
     df[text_col] = df[text_col].astype(str)
 
-    # Remove rows containing "sagajewels" (case-insensitive)
-    df = df[~df[text_col].str.contains("sagajewels", case=False, na=False)]
-    df = df[~df[text_col].str.contains("Jewelry", case=False, na=False)]
-    df = df[~df[text_col].str.contains("collaboration", case=False, na=False)]
-    df = df[~df[text_col].str.contains("collab", case=False, na=False)]
+    # Remove rows containing any unwanted keywords (case-insensitive)
+    pattern = r"sagajewels|jewelry|collaboration|collab"
+    df = df[~df[text_col].str.contains(pattern, case=False, na=False)]
 
     # Save original comment
     df["original_text"] = df[text_col]
@@ -199,7 +198,7 @@ def run_topic_model(
 
     # Coherence filtering
     coherence_scores = compute_topic_coherence(model, df_unique)
-    keep = {t for t, s in coherence_scores.items() if s >= 0.30}
+    keep = {t for t, s in coherence_scores.items() if s >= 0.35}
     print(f"Dropped {len(coherence_scores) - len(keep)} low-coherence topics")
 
     df_unique["Topic"] = [t if t in keep else -1 for t in topics]
