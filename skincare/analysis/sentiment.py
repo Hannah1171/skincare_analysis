@@ -37,9 +37,8 @@ def run_sentiment_analysis_on_comments(
     ])
 
     df = df.reset_index(drop=True)
-    df[sentiment_col] = sentiment_df[sentiment_col]
-    df[confidence_col] = sentiment_df[confidence_col]
+    df[[sentiment_col, confidence_col]] = sentiment_df
     df.to_csv(output_path, index=False)
-    
+
     print(f"Saved sentiment results to {output_path}")
     return df
