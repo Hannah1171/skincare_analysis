@@ -16,7 +16,7 @@ from gensim.corpora import Dictionary
 
 
 # Load LLM for topic name generation
-llm = pipeline("text2text-generation", model="google/flan-t5-base")
+llm = pipeline("text2text-generation", model="google/flan-t5-large")
 
 # Sentence embedding model for label deduplication
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -64,20 +64,24 @@ def get_filtered_keywords(model, topic_id, common_words, top_n=5):
 # Generate a topic label using keywords and representative comments
 def generate_topic_label(keywords: str, examples: List[str]) -> str:
     prompt = (
-        "You are labeling clusters of social media skincare comments from Gen Z users.\n"
-        "Generate a short, specific topic name (1–3 words max) that clearly describes the main theme of the cluster.\n"
-        "Use noun phrases only. Do not use full sentences or vague words like 'discussion' or 'people'.\n"
-        "Focus on clear skincare topics or product concerns.\n"
-        "Examples:\n"
-        "- Double cleansing\n"
-        "- On a budget\n"
-        "- Sunscreen myths\n"
-        "- Nose taping\n"
-        "- Glow-up routines\n"
-        "- Vitamin C\n"
-        f"Top keywords: {keywords}\n"
-        f"Representative comments:\n" + "\n".join(f"- {c}" for c in examples) + "\nTopic name:"
-    )
+            "You are labeling clusters of social media skincare comments.\n"
+            "Your task is to generate a short, clear topic name (1–3 words max) that summarizes the main theme of the entire cluster.\n"
+            "Use noun phrases only (e.g., 'Sunscreen', 'Product reviews'). Avoid vague terms like 'Love' or 'Like' or full sentences.\n"
+            "Focus on specific skincare concerns, techniques, or product types that describe the cluster as a whole.\n"
+            "Generalize across all examples — do not base the label on just one comment.\n"
+            "Examples:\n"
+            "- Double cleansing\n"
+            "- Tight budget\n"
+            "- Hair\n"
+            "- Sunscreen\n"
+            "- Nose taping\n"
+            "- Product reviews\n"
+            "- Mask\n"
+            "- Glow-up\n"
+            "- Vitamin C\n"
+            f"Top keywords: {keywords}\n"
+            f"Representative comments:\n" + "\n".join(f"- {c}" for c in examples) + "\nTopic name:"
+        )
     return llm(prompt)[0]["generated_text"].strip()
 
 # Build and return a BERTopic model
@@ -98,7 +102,7 @@ def build_topic_model(
     hdbscan_model = HDBSCAN(
         min_cluster_size=min_cluster_size,
         min_samples=min_samples,
-        max_cluster_size=120,
+        max_cluster_size=80,
         metric="euclidean",  # cosine or euclidean
         cluster_selection_method="eom",
         prediction_data=True
@@ -163,6 +167,10 @@ def run_topic_model(
     df = df[df["textLanguage"] == "en"].copy()
     df[text_col] = df[text_col].astype(str)
 
+    # Remove rows containing any unwanted keywords (case-insensitive)
+    pattern = r"sagajewels|jewelry|collaboration|collab"
+    df = df[~df[text_col].str.contains(pattern, case=False, na=False)]
+
     # Save original comment
     df["original_text"] = df[text_col]
 
@@ -190,7 +198,7 @@ def run_topic_model(
 
     # Coherence filtering
     coherence_scores = compute_topic_coherence(model, df_unique)
-    keep = {t for t, s in coherence_scores.items() if s >= 0.30}
+    keep = {t for t, s in coherence_scores.items() if s >= 0.35}
     print(f"Dropped {len(coherence_scores) - len(keep)} low-coherence topics")
 
     df_unique["Topic"] = [t if t in keep else -1 for t in topics]
@@ -224,6 +232,7 @@ def run_topic_model(
             "Topic": topic_id,
             "Name": label,
             "Count": topic_counts.get(topic_id, 0),
+            "Keywords": keywords,
             "Examples": sample_comments
         })
 

@@ -61,15 +61,13 @@ def clean_text(text, stopwords=None):
     tokens = text.split()
     tokens = [re.sub(r"(.)\1{2,}", r"\1", t) for t in tokens]
 
-    # Remove stopwords, short tokens, and the word 'sagajewels'
+    # Remove stopwords and short tokens
     if stopwords:
-        tokens = [t for t in tokens if t not in stopwords and len(t) > 2 and t != "sagajewels"]
+        tokens = [t for t in tokens if t not in stopwords and len(t) > 2]
     else:
-        tokens = [t for t in tokens if len(t) > 2 and t != "sagajewels"]
+        tokens = [t for t in tokens if len(t) > 2]
 
     return " ".join(tokens)
-
-
 
 
 def filter_by_date(df, date_col="createTimeISO", start="2025-02-17"):
