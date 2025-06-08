@@ -30,20 +30,20 @@ def prepare_data(cache=False):
     #do sentiment
     df_comments.to_csv("data/comments_posts_transcripts.csv", index=False)
 
-prepare_data()
+#prepare_data()
 
 '''
 run_sentiment_analysis_on_comments(
     input_path="data/comments_posts_transcripts.csv",
     output_path="data/comments_posts_transcripts.csv",
-    batch_size=64
-) 
-'''
-#Actually the trends
-''''
-keywords = get_trending_keywords_with_tfidf(filename="data/posts_transcripts.csv")
-keywords.to_csv("data/keywords.csv", index=False)'''
+    batch_size=64 #was 64 ritu changes it 
+) '''
 
-top5_weekly, top5_monthly = get_top_viral_videos("data/posts_transcripts.csv")
-top5_weekly.to_csv("data/top5_weekly.csv", index=False)
-top5_monthly.to_csv("data/top5_monthly.csv", index=False)
+#Actually the trends
+
+keywords = get_trending_keywords_with_tfidf(filename="data/posts_transcripts.csv")
+keywords.to_csv("data/keywords.csv", index=False)
+
+#top5_weekly, top5_monthly = get_top_viral_videos("data/posts_transcripts.csv")
+#top5_weekly.to_csv("data/top5_weekly.csv", index=False)
+#top5_monthly.to_csv("data/top5_monthly.csv", index=False)
