@@ -1,5 +1,6 @@
 import pandas as pd
-from transformers import pipeline
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 def run_sentiment_analysis_on_comments(
     input_path: str,
@@ -8,34 +9,32 @@ def run_sentiment_analysis_on_comments(
     sentiment_col: str = "sentiment",
     confidence_col: str = "sentiment_confidence",
     model_name: str = "cardiffnlp/twitter-xlm-roberta-base-sentiment",
-    batch_size: int = 32
+    batch_size: int = 32,
+    max_length: int = 512
 ) -> pd.DataFrame:
-    """
-    Loads comments from a CSV, applies sentiment analysis, and saves results to a new CSV.
-
-    Parameters:
-        input_path (str): Path to the input CSV.
-        output_path (str): Path to save the updated DataFrame.
-        text_col (str): Name of the column containing text to analyze.
-        sentiment_col (str): Output column for sentiment labels.
-        confidence_col (str): Output column for sentiment confidence scores.
-        model_name (str): HuggingFace model name for sentiment analysis.
-        batch_size (int): Batch size for pipeline processing.
-
-    Returns:
-        pd.DataFrame: The full DataFrame with sentiment columns added.
-    """
     df = pd.read_csv(input_path)
     texts = df[text_col].fillna("").astype(str).tolist()
 
-    pipe = pipeline("text-classification", model=model_name, batch_size=batch_size)
-    results = pipe(texts, truncation=True, batch_size=batch_size)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    model.eval()
 
-    sentiment_df = pd.DataFrame([
-        {sentiment_col: r["label"], confidence_col: r["score"]}
-        for r in results
-    ])
+    results = []
+    for i in range(0, len(texts), batch_size):
+        batch_texts = texts[i:i + batch_size]
+        encodings = tokenizer(batch_texts, padding=True, truncation=True, max_length=max_length, return_tensors="pt")
 
+        with torch.no_grad():
+            outputs = model(**encodings)
+            scores = torch.nn.functional.softmax(outputs.logits, dim=1)
+
+        for score in scores:
+            label_idx = torch.argmax(score).item()
+            confidence = score[label_idx].item()
+            label = model.config.id2label[label_idx]
+            results.append({sentiment_col: label, confidence_col: confidence})
+
+    sentiment_df = pd.DataFrame(results)
     df = df.reset_index(drop=True)
     df[[sentiment_col, confidence_col]] = sentiment_df
     df.to_csv(output_path, index=False)
