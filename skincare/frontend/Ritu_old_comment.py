@@ -1,151 +1,100 @@
-'''
+
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
-from datetime import datetime, timedelta
+import plotly.graph_objects as go
 
-# --- Page Setup ---
-st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
+# --- Constants ---
 TIKTOK_PINK = "#FE2C55"
 
-# --- Generate Dummy Data ---
-def create_dummy_data():
-    end_date = datetime.today()
-    start_date = end_date - timedelta(days=89)
-    date_range = pd.date_range(start=start_date, end=end_date)
+# --- Page Setup ---
+st.set_page_config(page_title="Hashtag Leaderboard", layout="wide")
+st.title("📈 Weekly Trending Hashtags")
 
-    keywords = ["hydrating cleanser", "niacinamide serum", "retinol cream", "sunscreen spf50", "vitamin c toner"]
-    np.random.seed(42)
+# --- Load Data ---
+hashtag_df = pd.read_csv("data/hashags_result_table.csv", parse_dates=["date"])
+hashtag_df["week"] = hashtag_df["date"].dt.isocalendar().week
 
-    data = []
-    for date in date_range:
-        for keyword in keywords:
-            mentions = np.random.poisson(lam=5)
-            tfidf_score = np.random.uniform(0.1, 0.6)
-            data.append({
-                "date": date,
-                "keyword": keyword,
-                "mentions": mentions,
-                "tfidf_score": round(tfidf_score, 4)
-            })
+# --- Filter by Latest Week ---
+latest_week = hashtag_df["week"].max()
+latest_week_data = hashtag_df[hashtag_df["week"] == latest_week]
 
-    df = pd.DataFrame(data)
-    df["date"] = pd.to_datetime(df["date"])  # Ensure datetime dtype
-    df["week"] = df["date"].dt.to_period("W")
-    df["week_start"] = df["week"].dt.to_timestamp()
-    return df
+# --- Get Last Week for Trend Comparison ---
+last_week = latest_week - 1
+last_week_data = hashtag_df[hashtag_df["week"] == last_week][["hashtags_name", "post_count"]]
 
-df = create_dummy_data()
+# --- Merge and Compute Change ---
+merged = latest_week_data.merge(last_week_data, on="hashtags_name", how="left", suffixes=("", "_last"))
+merged["post_count_last"] = merged["post_count_last"].fillna(0)
+merged["change"] = merged["post_count"] - merged["post_count_last"]
 
-# --- Sidebar Filters ---
-from datetime import datetime
+# --- Rank Hashtags with Dense Method ---
+merged = merged.sort_values("post_count", ascending=False)
+merged["rank"] = merged["post_count"].rank(method="dense", ascending=False).astype(int)
 
-# Convert to date format for Streamlit's date_input
-min_date = df["date"].min().date()
-max_date = df["date"].max().date()
+# --- Filter Top 10 Ranks ---
+top10 = merged[merged["rank"] <= 10]
 
-# Use date_input instead of slider
-start_date, end_date = st.sidebar.date_input(
-    label="Select date range",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date
-)
+# --- Sidebar Filter ---
+st.sidebar.header("⚙️ Options")
+exclude_common = st.sidebar.checkbox("🚫 Exclude common skincare hashtags", value=True)
+excluded_tags = ['skincare', 'skincareroutine', 'hautpflege', 'hautpflegeroutine']
+if exclude_common:
+    top10 = top10[~top10["hashtags_name"].isin(excluded_tags)]
 
-# Convert selected dates back to datetime for filtering
-start_datetime = datetime.combine(start_date, datetime.min.time())
-end_datetime = datetime.combine(end_date, datetime.max.time())
+# --- Display Table with Expandable Trend ---
+# --- Display Table with Expandable Trend ---
+st.markdown("### 🏆 Hashtag Leaderboard")
 
-# Filter your dataframe
-filtered_df = df[(df["date"] >= start_datetime) & (df["date"] <= end_datetime)]
+for _, row in top10.iterrows():
+    # Determine trend icon
+    if row["change"] > 0:
+        trend_icon = "⬆"
+        trend_color = "green"
+    elif row["change"] < 0:
+        trend_icon = "⬇"
+        trend_color = "red"
+    else:
+        trend_icon = "➡️"
+        trend_color = "gray"
 
-selected_keyword = st.sidebar.selectbox(
-    "Filter by keyword",
-    options=["All"] + sorted(df["keyword"].unique())
-)
+    with st.expander(f"#{row['rank']}  |  🔖 {row['hashtags_name']} {trend_icon}"):
 
-# --- Dashboard Layout ---
-st.title("🧴 Skincare TikTok Trends Dashboard")
-st.markdown(f"<h4 style='color:{TIKTOK_PINK};'>Tracking mentions and keyword scores across 90 days</h4>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([3, 2, 1])
 
-col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"<span style='font-size:18px'>📌 <b>{row['hashtags_name']}</b></span>", unsafe_allow_html=True)
+        with col2:
+            st.markdown(f"<span style='font-size:18px'>{int(row['post_count'])} posts</span>", unsafe_allow_html=True)
+        with col3:
+            st.markdown(f"<span style='font-size:24px; color:{trend_color}'>{trend_icon}</span>", unsafe_allow_html=True)
 
-with col1:
-    st.subheader("📈 Mentions Over Time")
-    fig_mentions = px.line(
-        filtered_df,
-        x="date",
-        y="mentions",
-        color="keyword" if selected_keyword == "All" else None,
-        color_discrete_sequence=[TIKTOK_PINK],
-        title="Mentions Trend"
-    )
-    st.plotly_chart(fig_mentions, use_container_width=True)
-
-with col2:
-    st.subheader("🔠 TF-IDF Score Over Time")
-    fig_tfidf = px.area(
-        filtered_df,
-        x="date",
-        y="tfidf_score",
-        color="keyword" if selected_keyword == "All" else None,
-        color_discrete_sequence=[TIKTOK_PINK],
-        title="TF-IDF Score Trend"
-    )
-    st.plotly_chart(fig_tfidf, use_container_width=True)
-
-# --- Top Weekly Videos Section ---
-st.subheader("🎬 Featured Videos (Weekly Top)")
-top5_weekly = pd.read_csv("data/top5_weekly.csv")
-valid_weekly = top5_weekly[top5_weekly["bucketUrl"].notna()].head(6)
-
-cols = st.columns(3)
-for i, (_, row) in enumerate(valid_weekly.iterrows()):
-    col = cols[i % 3]
-    with col:
+        # Trend chart
+        trend_data = hashtag_df[hashtag_df["hashtags_name"] == row["hashtags_name"]].sort_values("date")
         st.markdown(
-            f"""
-            <iframe src="{row['bucketUrl']}" width="250" height="400" style="border:none;" allow="autoplay; fullscreen"></iframe>
-            """,
-            unsafe_allow_html=True
+        f"""
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <h4 style="margin: 0;">Smoothed Post Count Trend: #{row['hashtags_name']}</h4>
+            <span title="This is a 3-week moving average of post count to reduce noise and reveal consistent trends.">ℹ️</span>
+        </div>
+        """,
+        unsafe_allow_html=True
         )
-        st.markdown(f"**👤 {row['author_nickName']}**")
-        st.markdown(f"📝 {row['text'][:100]}{'...' if len(row['text']) > 100 else ''}")
-        st.markdown(
-            f"""
-            👍 {row['diggCount']} 💬 {row['commentCount']} 🔁 {row['shareCount']}  
-            ▶️ {row['playCount']} 📥 {row['collectCount']}
-            """
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=trend_data["date"],
+            y=trend_data["smoothed_post_count"],
+            mode='lines',
+            fill='tozeroy',
+            line=dict(color=TIKTOK_PINK, width=3),
+            name='Post Count'
+        ))
+
+        fig.update_layout(
+            title=f"Smoothed Post Count Trend: #{row['hashtags_name']}",
+            template="plotly_white",
+            showlegend=False,
+            margin=dict(l=0, r=0, t=40, b=20)
         )
 
-# --- Top Monthly Videos Section ---
-st.subheader("📆 Featured Videos (Monthly Top)")
-top5_monthly = pd.read_csv("data/top5_monthly.csv")
-valid_monthly = top5_monthly[top5_monthly["bucketUrl"].notna()].head(6)
-
-cols = st.columns(3)
-for i, (_, row) in enumerate(valid_monthly.iterrows()):
-    col = cols[i % 3]
-    with col:
-        st.markdown(
-            f"""
-            <iframe src="{row['bucketUrl']}" width="250" height="400" style="border:none;" allow="autoplay; fullscreen"></iframe>
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown(f"**👤 {row['author_nickName']}**")
-        st.markdown(f"📝 {row['text'][:100]}{'...' if len(row['text']) > 100 else ''}")
-        st.markdown(
-            f"""
-            👍 {row['diggCount']} 💬 {row['commentCount']} 🔁 {row['shareCount']}  
-            ▶️ {row['playCount']} 📥 {row['collectCount']}
-            """
-        )
-
-
-
-# --- Raw Data View ---
-with st.expander("🔍 View Raw Data"):
-    st.dataframe(filtered_df)
-'''
+        st.plotly_chart(fig, use_container_width=True)
