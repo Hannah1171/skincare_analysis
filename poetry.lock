@@ -257,6 +257,22 @@ webencodings = "*"
 css = ["tinycss2 (>=1.1.0,<1.5)"]
 
 [[package]]
+name = "burst-detection"
+version = "0.1.3"
+description = "Detect bursts in batched data using Kleinbergs (2002) algorithm."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "burst_detection-0.1.3.tar.gz", hash = "sha256:08a0b8dc3ff1dadee1548dc2525196fad3ce5133c7d28a3151a9c9b3f17b9af9"},
+]
+
+[package.dependencies]
+mpmath = "*"
+numpy = "*"
+pandas = "*"
+
+[[package]]
 name = "cachetools"
 version = "5.5.2"
 description = "Extensible memoizing collections and decorators"
@@ -4911,4 +4927,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "4ca3dfb73773ded7f514f92a4e31ffb138973bae7280ec1d262b9e21fa392dd6"
+content-hash = "cb89f70c0bd91926c7edfcc977d88dde5f5aa154de90cda84974fb039060ad50"
