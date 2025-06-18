@@ -55,12 +55,12 @@ run_sentiment_analysis_on_comments(
 ingredient_map = load_ingredient_map("/Users/ritushetkar/Downloads/Ingredient Mapping.csv")
 
 # Process Ingredient Sentiments
-ingredient_df = analyze_ingredient_sentiments(
-    data_path="data/comments_posts_transcripts.csv",
+ingredient_df, exploded_ingredient_df = analyze_ingredient_sentiments(
+    comment_file="data/comments_posts_transcripts.csv",
     ingredient_map=ingredient_map
 )
 ingredient_df.to_csv("data/ingredients_results.csv", index=False)
 
 # Extract Example Comments
-example_comments = get_top_example_comments(ingredient_df)
+example_comments = get_top_example_comments(exploded_ingredient_df)
 example_comments.to_csv("data/ingredients_examplecomments.csv", index=False)
