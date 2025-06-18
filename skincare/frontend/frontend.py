@@ -14,6 +14,10 @@ import plotly.graph_objects as go
 TIKTOK_PINK = "#FE2C55"
 GREY = "#d3d3d3"
 Green = "#3CB54A"
+POSITIVE_COLOR = "#6FBF73"  
+NEUTRAL_COLOR = "#B0B0B0"   
+NEGATIVE_COLOR = "#D96C7C"  
+
 
 rcParams.update({
     "font.family": "sans-serif",
@@ -46,11 +50,14 @@ def load_data():
     weekly = pd.read_csv("data/top5_weekly.csv", parse_dates=["date"])
     monthly = pd.read_csv("data/top5_monthly.csv", parse_dates=["date"])
     clusters = pd.read_csv("/Users/ritushetkar/Downloads/topic_clustering.csv")
+    hashtags=pd.read_csv("data/hashags_result_table.csv", parse_dates=["date"])
+    ingredients = pd.read_csv("/Users/ritushetkar/env_capstone/data/ingredients_results.csv")
+    ingredients_example=pd.read_csv('/Users/ritushetkar/env_capstone/data/ingredients_examplecomments.csv')
 
     weekly["week"] = weekly["date"].dt.isocalendar().week
     monthly["month"] = monthly["date"].dt.to_period("M")
     
-    return keywords, topics, weekly, monthly, clusters
+    return keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example
 
 # --- Plotting Functions ---
 def plot_mentions(df):
@@ -165,8 +172,8 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
 
                 st.plotly_chart(fig, use_container_width=True)
 
-def display_hashtag_leaderboard():
-    hashtag_df = pd.read_csv("data/hashags_result_table.csv", parse_dates=["date"])
+def display_hashtag_leaderboard(df: pd.DataFrame):
+    hashtag_df = df.copy()
     hashtag_df["week"] = hashtag_df["date"].dt.isocalendar().week
 
     latest_week = hashtag_df["week"].max()
@@ -191,29 +198,27 @@ def display_hashtag_leaderboard():
 
     st.markdown("### 🏆 Hashtag Leaderboard")
 
-    for _, row in top10.iterrows():
-        if row["change"] > 0:
-            trend_icon = "⬆"
-            trend_color = "green"
-        elif row["change"] < 0:
-            trend_icon = "⬇"
-            trend_color = "red"
-        else:
-            trend_icon = "➡️"
-            trend_color = "gray"
+    col1, col2 = st.columns(2)
 
-        with  st.expander(f"#{row['rank']}  |  🔖 {row['hashtags_name']}  {trend_icon}"):
+    for i, (_, row) in enumerate(top10.iterrows()):
+        col = col1 if i % 2 == 0 else col2
+
+        with col:
+            trend_icon = "⬆" if row["change"] > 0 else "⬇" if row["change"] < 0 else "➡️"
+            trend_color = "green" if row["change"] > 0 else "red" if row["change"] < 0 else "gray"
+
+            with st.expander(f"#{row['rank']}  |  🔖 {row['hashtags_name']}  {trend_icon}"):
                 st.markdown(
                     f"<span style='color:{trend_color}; font-size:22px;'>Trend: {trend_icon}</span>",
                      unsafe_allow_html=True
-                    )
+                )
 
-                col1, col2, col3 = st.columns([3, 2, 1])
-                with col1:
+                colA, colB, colC = st.columns([3, 2, 1])
+                with colA:
                     st.markdown(f"<span style='font-size:18px'>📌 <b>{row['hashtags_name']}</b></span>", unsafe_allow_html=True)
-                with col2:
+                with colB:
                     st.markdown(f"<span style='font-size:18px'>{int(row['post_count'])} posts</span>", unsafe_allow_html=True)
-                with col3:
+                with colC:
                     st.markdown(f"<span style='font-size:24px; color:{trend_color}'>{trend_icon}</span>", unsafe_allow_html=True)
 
                 trend_data = hashtag_df[hashtag_df["hashtags_name"] == row["hashtags_name"]].sort_values("date")
@@ -246,48 +251,140 @@ def display_hashtag_leaderboard():
 
                 st.plotly_chart(fig, use_container_width=True)
 
-# --- Main App ---
+
+
+
+def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.DataFrame):
+    
+    st.title("🧪 Top 10 Discussed Skincare Ingredients Overall")
+
+    df_sentiment=df_sentiments.copy()
+    df_comments=df_examples.copy()
+    # Sort by total mentions
+    top_ingredients = df_sentiment.sort_values("total_mentions", ascending=False).head(10)
+
+    # Two columns layout
+    col1, col2 = st.columns(2)
+
+    for i, (_, row) in enumerate(top_ingredients.iterrows()):
+        col = col1 if i % 2 == 0 else col2
+
+        with col:
+            with st.expander(f"🔍 {row['matched_ingredients']} ({int(row['total_mentions'])} mentions)"):
+                percent_width = min(row["total_mentions"] / df_sentiment["total_mentions"].max(), 1.0) * 100
+                st.markdown(
+                    f"""
+                    <div style='background-color:#f5c0d1; border-radius:6px; height:16px; width:100%; margin-bottom:10px'>
+                        <div style='background-color:{TIKTOK_PINK}; width:{percent_width:.2f}%; height:100%; border-radius:6px'></div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                # Voice of Gen Z section
+                st.markdown("#### Voice of Gen Z")
+                st.caption("Real comments from TikTok users")
+                top_comments = df_comments[df_comments["matched_ingredients"] == row["matched_ingredients"]]
+                for _, c_row in top_comments.sort_values("confidence", ascending=False).head(3).iterrows():
+                    st.markdown(
+                        f"<span style='color:{TIKTOK_PINK}; font-size:20px; font-weight:bold;'>&ldquo;&nbsp;</span>"
+                        f"<span style='font-size:15px; color:black;'>{c_row['comment'].strip()}</span>"
+                        f"<span style='color:{TIKTOK_PINK}; font-size:20px; font-weight:bold;'>&nbsp;&rdquo;</span>",
+                        unsafe_allow_html=True
+                    )
+
+                # Sentiment pie chart
+                st.markdown("#### Sentiment")
+                st.caption("Share of comments that are positive, neutral or negative")
+                sentiment_labels = ["Positive", "Neutral", "Negative"]
+                sentiment_values = [
+                    row.get("positive", 0),
+                    row.get("neutral", 0),
+                    row.get("negative", 0)
+                ]
+                custom_labels = [
+                    f"<b>{label}</b><br>{value:.0f}%" for label, value in zip(sentiment_labels, sentiment_values)
+                ]
+                fig = go.Figure(
+                    data=[
+                        go.Pie(
+                            labels=custom_labels,
+                            values=sentiment_values,
+                            marker=dict(colors=[POSITIVE_COLOR, NEUTRAL_COLOR, NEGATIVE_COLOR]),
+                            textinfo="label",
+                            hoverinfo="label+percent",
+                            textfont=dict(size=14, color="white")
+                        )
+                    ]
+                )
+                fig.update_layout(margin=dict(t=10, b=10), showlegend=False, height=280)
+                st.plotly_chart(fig, use_container_width=True)
 def main():
     setup_page()
     start_dt, end_dt = sidebar_date_filter()
-    
-    keywords, topics, weekly, monthly, clusters = load_data()
-    
-    # Filter data
+
+    if "section" not in st.session_state:
+        st.session_state.section = "home"
+
+    # Load all data once
+    keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example = load_data()
     keywords_filtered = keywords[(keywords["date"] >= start_dt) & (keywords["date"] <= end_dt)]
     topics_filtered = topics[(topics["Timestamp"] >= start_dt) & (topics["Timestamp"] <= end_dt)]
 
-    # Header
-    st.title("🧴 Skincare TikTok Trends Dashboard")
-    st.markdown(f"<h4 style='color:{TIKTOK_PINK};'>Tracking keywords, engagement, and top content</h4>", unsafe_allow_html=True)
+    if st.session_state.section == "home":
+        st.title("🧴 Skincare TikTok Trends Dashboard")
+        st.markdown("### What would you like to explore?")
+        col1, col2, col3 = st.columns(3)
 
-    # Plots
-    display_collapsible_topics(df=clusters)
+        with col1:
+            if st.button("📊 Topics", key="topics_btn"):
+                st.session_state.section = "topics"
 
-    # NEW: Hashtag leaderboard
-    display_hashtag_leaderboard()
+        with col2:
+            if st.button("🏷 Hashtags", key="hashtags_btn"):
+                st.session_state.section = "hashtags"
+
+        with col3:
+            if st.button("🧪 Ingredients", key="ingredients_btn"):
+                st.session_state.section = "ingredients"
+
+    else:
+        if st.button("🔙 Back to Home"):
+            st.session_state.section = "home"
+            st.experimental_rerun()
+
+        if st.session_state.section == "topics":
+            st.subheader("🧠 Topics from Skincare Conversations")
+            display_collapsible_topics(df=clusters)
+
+        elif st.session_state.section == "hashtags":
+            st.subheader("🏷 Weekly Hashtag Leaderboard")
+            display_hashtag_leaderboard(df=hashtags)
+
+        elif st.session_state.section == "ingredients":
+            st.subheader("🧪 Skincare Ingredients Sentiment")
+            display_ingredient_sentiment_ui(df_sentiments=ingredients, df_examples=ingredients_example)
+
+        # Optional: keyword and tf-idf plots
+        col1, col2 = st.columns(2)
+        with col1:
+            st.plotly_chart(plot_mentions(keywords_filtered), use_container_width=True)
+        with col2:
+            st.plotly_chart(plot_tfidf(keywords_filtered), use_container_width=True)
+
+        # Optional: Top videos and tables
+        latest_week = weekly["week"].max()
+        latest_month = monthly["month"].max()
+        show_top_videos(weekly[weekly["week"] == latest_week], "date", "🎬 Top Weekly Viral Videos")
+        show_top_videos(monthly[monthly["month"] == latest_month], "date", "📆 Top Monthly Viral Videos")
+
+        with st.expander("🔍 View Filtered Keyword Data"):
+            st.dataframe(keywords_filtered)
+
+        with st.expander("📈 View Filtered Trend Data"):
+            st.dataframe(topics_filtered)
 
 
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.plotly_chart(plot_mentions(keywords_filtered), use_container_width=True)
-    with col2:
-        st.plotly_chart(plot_tfidf(keywords_filtered), use_container_width=True)
-
-
-    # Top videos
-    latest_week = weekly["week"].max()
-    latest_month = monthly["month"].max()
-    show_top_videos(weekly[weekly["week"] == latest_week], "date", "🎬 Top Weekly Viral Videos")
-    show_top_videos(monthly[monthly["month"] == latest_month], "date", "📆 Top Monthly Viral Videos")
-
-    # Data previews
-    with st.expander("🔍 View Filtered Keyword Data"):
-        st.dataframe(keywords_filtered)
-
-    with st.expander("📈 View Filtered Trend Data"):
-        st.dataframe(topics_filtered)
 
 # --- Run ---
 if __name__ == "__main__":

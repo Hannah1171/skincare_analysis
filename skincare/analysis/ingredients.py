@@ -13,7 +13,7 @@ from collections import defaultdict
 def analyze_ingredient_sentiments(
     comment_file: str,
     ingredient_map: dict,
-    months_back: int = 6,
+    months_back: int = 3,
     min_confidence: float = 0.0,
     model_name: str = "cardiffnlp/twitter-roberta-base-sentiment-latest"
 ) -> pd.DataFrame:
@@ -84,8 +84,10 @@ def analyze_ingredient_sentiments(
     ) * 100
 
     ingredient_sentiment_pct["total_mentions"] = ingredient_sentiment_pivot["total_mentions"]
+    ingre_results=ingredient_sentiment_pct.sort_values(by="total_mentions", ascending=False)
+    ingre_results=ingre_results.reset_index()
+    return ingre_results , df_sentiment_exploded
 
-    return ingredient_sentiment_pct.sort_values(by="total_mentions", ascending=False)
 
 
 def get_top_example_comments(
