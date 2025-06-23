@@ -57,7 +57,21 @@ def build_weekly_normalized_table(file_path_or_df, min_posts=1):
         .reset_index()
     )
 
-    
+    # Count total unique posts per week (across all hashtags)
+    weekly_post_totals = (
+    df.groupby(['year', 'week'])['post_id']
+    .nunique()
+    .reset_index()
+    .rename(columns={'post_id': 'total_weekly_posts'})
+)
+
+# Merge into weekly_stats
+    weekly_stats = pd.merge(
+        weekly_stats,
+        weekly_post_totals,
+        on=['year', 'week'],
+        how='left'
+    )
 
     # Apply rolling average smoothing (window=2 or 3 usually works well)
     weekly_stats['smoothed_post_count'] = (
@@ -88,6 +102,9 @@ def build_weekly_normalized_table(file_path_or_df, min_posts=1):
         weekly_stats.groupby('hashtags_name')['post_count']
         .transform(lambda x: x.rolling(window=3, min_periods=1).mean())
     )
+    weekly_stats['post_share_of_week'] = (
+    weekly_stats['post_count'] / weekly_stats['total_weekly_posts']
+)
 
     
     return weekly_stats.sort_values(['year', 'week', 'normalized_weekly_engagement'], ascending=[True, True, False])
