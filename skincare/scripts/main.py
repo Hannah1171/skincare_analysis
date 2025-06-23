@@ -49,18 +49,18 @@ run_sentiment_analysis_on_comments(
 #top5_weekly.to_csv("data/top5_weekly.csv", index=False)
 #top5_monthly.to_csv("data/top5_monthly.csv", index=False)
 
-#hashags_result_table = build_weekly_normalized_table('data/hashtags_posts.csv', min_posts=1)
-#hashags_result_table.to_csv("data/hashags_result_table.csv", index=False)
+hashags_result_table = build_weekly_normalized_table('data/hashtags_posts.csv', min_posts=1)
+hashags_result_table.to_csv("data/hashags_result_table.csv", index=False)
 
-ingredient_map = load_ingredient_map("/Users/ritushetkar/Downloads/Ingredient Mapping.csv")
+#ingredient_map = load_ingredient_map("/Users/ritushetkar/Downloads/Ingredient Mapping.csv")
 
 # Process Ingredient Sentiments
-ingredient_df, exploded_ingredient_df = analyze_ingredient_sentiments(
-    comment_file="data/comments_posts_transcripts.csv",
-    ingredient_map=ingredient_map
-)
-ingredient_df.to_csv("data/ingredients_results.csv", index=False)
+#ingredient_df, exploded_ingredient_df = analyze_ingredient_sentiments(
+ #   comment_file="data/comments_posts_transcripts.csv",
+  #  ingredient_map=ingredient_map
+#)
+#ingredient_df.to_csv("data/ingredients_results.csv", index=False)
 
 # Extract Example Comments
-example_comments = get_top_example_comments(exploded_ingredient_df)
-example_comments.to_csv("data/ingredients_examplecomments.csv", index=False)
+#example_comments = get_top_example_comments(exploded_ingredient_df)
+#example_comments.to_csv("data/ingredients_examplecomments.csv", index=False)

@@ -26,9 +26,8 @@ rcParams.update({
     "text.color": "black"
 })
 
-# --- Page Setup ---
-def setup_page():
-    st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
+
+st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
 
 # --- Sidebar Filter ---
 def sidebar_date_filter():
@@ -251,9 +250,6 @@ def display_hashtag_leaderboard(df: pd.DataFrame):
 
                 st.plotly_chart(fig, use_container_width=True)
 
-
-
-
 def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.DataFrame):
     
     st.title("🧪 Top 10 Discussed Skincare Ingredients Overall")
@@ -319,73 +315,109 @@ def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.D
                 )
                 fig.update_layout(margin=dict(t=10, b=10), showlegend=False, height=280)
                 st.plotly_chart(fig, use_container_width=True)
-def main():
-    setup_page()
-    start_dt, end_dt = sidebar_date_filter()
 
+# --- Navigation Styling ---
+st.markdown("""
+<style>
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #fff;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+.nav-button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #555;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.2s;
+    border: none;
+    background-color: #f3f3f3;
+    cursor: pointer;
+}
+.nav-button:hover {
+    background-color: #fdf0f3;
+}
+.nav-button.active {
+    background-color: #FE2C55;
+    color: white;
+    font-weight: 700;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- Main App Function ---
+def main():
+    
+    st.title("🧴 Skincare TikTok Trends Dashboard")
+
+    # --- Session State Init ---
     if "section" not in st.session_state:
         st.session_state.section = "home"
 
-    # Load all data once
-    keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example = load_data()
+    section_names = ["home", "topics", "hashtags", "ingredients"]
+    section_labels = ["🏠 Home", "📘 Topics", "🏷️ Hashtags", "🧪 Ingredients"]
+
+    st.markdown("<div class='navbar'>" +
+                "".join([
+                    f"<button class='nav-button {'active' if st.session_state.section == name else ''}' "
+                    f"onClick=\"window.location.href='/?section={name}'\">{label}</button>"
+                    for name, label in zip(section_names, section_labels)
+                ]) +
+                "</div>", unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("🏠 Home"):
+            st.session_state.section = "home"
+    with col2:
+        if st.button("📘 Topics"):
+            st.session_state.section = "topics"
+    with col3:
+        if st.button("🏷️ Hashtags"):
+            st.session_state.section = "hashtags"
+    with col4:
+        if st.button("🧪 Ingredients"):
+            st.session_state.section = "ingredients"
+
+    # --- Load Data ---
+    with st.spinner("Loading data..."):
+        keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example = load_data()
+    start_dt, end_dt = sidebar_date_filter()
     keywords_filtered = keywords[(keywords["date"] >= start_dt) & (keywords["date"] <= end_dt)]
     topics_filtered = topics[(topics["Timestamp"] >= start_dt) & (topics["Timestamp"] <= end_dt)]
 
-    if st.session_state.section == "home":
-        st.title("🧴 Skincare TikTok Trends Dashboard")
-        st.markdown("### What would you like to explore?")
-        col1, col2, col3 = st.columns(3)
+    # --- Section Routing ---
+    section = st.session_state.section
 
-        with col1:
-            if st.button("📊 Topics", key="topics_btn"):
-                st.session_state.section = "topics"
+    if section == "home":
+        st.markdown("## 👋 Welcome to the Skincare Trend Dashboard")
+        st.markdown("Use the buttons above to explore TikTok skincare trends by **topics**, **hashtags**, or **ingredients**.")
 
-        with col2:
-            if st.button("🏷 Hashtags", key="hashtags_btn"):
-                st.session_state.section = "hashtags"
-
-        with col3:
-            if st.button("🧪 Ingredients", key="ingredients_btn"):
-                st.session_state.section = "ingredients"
-
-    else:
-        if st.button("🔙 Back to Home"):
-            st.session_state.section = "home"
-            st.experimental_rerun()
-
-        if st.session_state.section == "topics":
-            st.subheader("🧠 Topics from Skincare Conversations")
-            display_collapsible_topics(df=clusters)
-
-        elif st.session_state.section == "hashtags":
-            st.subheader("🏷 Weekly Hashtag Leaderboard")
-            display_hashtag_leaderboard(df=hashtags)
-
-        elif st.session_state.section == "ingredients":
-            st.subheader("🧪 Skincare Ingredients Sentiment")
-            display_ingredient_sentiment_ui(df_sentiments=ingredients, df_examples=ingredients_example)
-
-        # Optional: keyword and tf-idf plots
-        col1, col2 = st.columns(2)
-        with col1:
-            st.plotly_chart(plot_mentions(keywords_filtered), use_container_width=True)
-        with col2:
-            st.plotly_chart(plot_tfidf(keywords_filtered), use_container_width=True)
-
-        # Optional: Top videos and tables
-        latest_week = weekly["week"].max()
-        latest_month = monthly["month"].max()
-        show_top_videos(weekly[weekly["week"] == latest_week], "date", "🎬 Top Weekly Viral Videos")
-        show_top_videos(monthly[monthly["month"] == latest_month], "date", "📆 Top Monthly Viral Videos")
-
-        with st.expander("🔍 View Filtered Keyword Data"):
-            st.dataframe(keywords_filtered)
-
-        with st.expander("📈 View Filtered Trend Data"):
+    elif section == "topics":
+        
+        display_collapsible_topics(df=clusters)
+        with st.expander("📈 View Filtered Topic Mentions"):
             st.dataframe(topics_filtered)
 
+    elif section == "hashtags":
+        display_hashtag_leaderboard(df=hashtags)
 
+    elif section == "ingredients":
+    
+        display_ingredient_sentiment_ui(df_sentiments=ingredients, df_examples=ingredients_example)
 
-# --- Run ---
+    st.markdown("---")
+    st.caption("Use the navigation buttons above to switch sections.")
+
 if __name__ == "__main__":
     main()

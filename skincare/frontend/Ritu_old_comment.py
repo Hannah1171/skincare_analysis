@@ -322,45 +322,102 @@ def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.D
 
 
 def main():
-    setup_page()
+    st.markdown("""
+<style>
+.tile-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 40px;
+    margin: 40px 0;
+}
+.tile-button {
+    background-color: #FE2C55;
+    color: white;
+    border: none;
+    padding: 1.5em 2em;
+    border-radius: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-align: center;
+}
+.tile-button:hover {
+    transform: scale(1.05);
+    background-color: #ff4c6e;
+}
+</style>
+
+<div class="tile-container">
+    <form action="?section=home" method="get">
+        <button class="tile-button">🏠 Home</button>
+    </form>
+    <form action="?section=topics" method="get">
+        <button class="tile-button">🗣️ Topics</button>
+    </form>
+    <form action="?section=hashtags" method="get">
+        <button class="tile-button">🏷️ Hashtags</button>
+    </form>
+    <form action="?section=ingredients" method="get">
+        <button class="tile-button">🧪 Ingredients</button>
+    </form>
+</div>
+""", unsafe_allow_html=True)
+
+
     st.title("🧴 Skincare TikTok Trends Dashboard")
 
-    # --- Section Navigation ---
-    section = st.radio(
-        "Choose a section to explore:",
-        ["🏠 Home", "🗣️ Topics", "🏷️ Hashtags", "🧪 Ingredients"],
-        horizontal=True
-    )
+    # --- Session State Init ---
+    if "section" not in st.session_state:
+        st.session_state.section = "home"
 
-    # Load all data once
+    # --- Custom Tile Navigation ---
+    st.markdown('<div class="tile-container">', unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("🏠 Home", key="home_btn"):
+            st.session_state.section = "home"
+    with col2:
+        if st.button("🗣️ Topics", key="topics_btn"):
+            st.session_state.section = "topics"
+    with col3:
+        if st.button("🏷️ Hashtags", key="hashtags_btn"):
+            st.session_state.section = "hashtags"
+    with col4:
+        if st.button("🧪 Ingredients", key="ingredients_btn"):
+            st.session_state.section = "ingredients"
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- Load Data ---
     keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example = load_data()
     start_dt, end_dt = sidebar_date_filter()
-
     keywords_filtered = keywords[(keywords["date"] >= start_dt) & (keywords["date"] <= end_dt)]
     topics_filtered = topics[(topics["Timestamp"] >= start_dt) & (topics["Timestamp"] <= end_dt)]
 
-    # --- Home View ---
-    if section == "🏠 Home":
+    # --- Section Routing ---
+    section = st.session_state.section
+
+    if section == "home":
         st.markdown("## 👋 Welcome to the Skincare Trend Dashboard")
         st.markdown("Use the buttons above to explore TikTok skincare trends by **topics**, **hashtags**, or **ingredients**.")
 
-    # --- Topics View ---
-    elif section == "🗣️ Topics":
+    elif section == "topics":
         display_collapsible_topics(df=clusters)
         with st.expander("📈 View Filtered Topic Mentions"):
             st.dataframe(topics_filtered)
 
-    # --- Hashtags View ---
-    elif section == "🏷️ Hashtags":
+    elif section == "hashtags":
         display_hashtag_leaderboard(df=hashtags)
 
-    # --- Ingredients View ---
-    elif section == "🧪 Ingredients":
+    elif section == "ingredients":
         display_ingredient_sentiment_ui(df_sentiments=ingredients, df_examples=ingredients_example)
 
-    # Optional: Add footer or navigation tip
     st.markdown("---")
     st.caption("Use the navigation buttons above to switch sections.")
+
 
 if __name__ == "__main__":
     main()
