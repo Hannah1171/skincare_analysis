@@ -5119,6 +5119,21 @@ watchdog = {version = ">=2.1.5,<7", markers = "platform_system != \"Darwin\""}
 snowflake = ["snowflake-connector-python (>=3.3.0) ; python_version < \"3.12\"", "snowflake-snowpark-python[modin] (>=1.17.0) ; python_version < \"3.12\""]
 
 [[package]]
+name = "streamlit-option-menu"
+version = "0.4.0"
+description = "streamlit-option-menu is a simple Streamlit component that allows users to select a single item from a list of options in a menu."
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "streamlit-option-menu-0.4.0.tar.gz", hash = "sha256:48ec69d59e547fa2fa4bfae001620df8af56a80de2f765ddbb9fcbfb84017129"},
+    {file = "streamlit_option_menu-0.4.0-py3-none-any.whl", hash = "sha256:a55fc7554047b6db371595af2182e435b8a2c715ee6124e8543685bd4670b07e"},
+]
+
+[package.dependencies]
+streamlit = ">=1.36"
+
+[[package]]
 name = "sympy"
 version = "1.13.3"
 description = "Computer algebra system (CAS) in Python"
@@ -5992,4 +6007,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "338ab537936d64988affe8b35da99fe06d52f5eb944ec07152e24eb8fbe1ff4c"
+content-hash = "f1e567b2fa96a9d36930a71672ac0ff615a1eb6d486124c326de6dfd4489d747"

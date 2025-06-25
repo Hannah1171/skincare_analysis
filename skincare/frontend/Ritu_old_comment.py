@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 import numpy as np
+from streamlit_option_menu import option_menu
 import plotly.graph_objects as go
 
 
@@ -72,7 +73,7 @@ def plot_tfidf(df):
 
 # --- Display Top Videos ---
 def show_top_videos(df, date_col, title):
-    st.subheader(title)
+    st.header(title)
     valid = df[df["bucketUrl"].notna()].head(6)
     cols = st.columns(3)
     for i, (_, row) in enumerate(valid.iterrows()):
@@ -236,9 +237,9 @@ def display_hashtag_leaderboard(df: pd.DataFrame):
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
                     x=trend_data["date"],
-                    y=trend_data["smoothed_post_count"],
+                    y=trend_data["post_share_of_week"],
                     mode='lines',
-                    fill='tozeroy',
+                    #fill='tozeroy',
                     line=dict(color=TIKTOK_PINK, width=3),
                     name='Post Count'
                 ))
@@ -246,7 +247,9 @@ def display_hashtag_leaderboard(df: pd.DataFrame):
                 fig.update_layout(
                     template="plotly_white",
                     showlegend=False,
-                    margin=dict(l=0, r=0, t=40, b=20)
+                    margin=dict(l=0, r=0, t=40, b=20),
+                    yaxis=dict(range=[0, 1], showgrid=False),
+                    xaxis=dict(showgrid=False)
                 )
 
                 st.plotly_chart(fig, use_container_width=True)
@@ -321,105 +324,66 @@ def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.D
                 st.plotly_chart(fig, use_container_width=True)
 
 
+
 def main():
-    st.markdown("""
-<style>
-.tile-container {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 40px;
-    margin: 40px 0;
-}
-.tile-button {
-    background-color: #FE2C55;
-    color: white;
-    border: none;
-    padding: 1.5em 2em;
-    border-radius: 10px;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    text-align: center;
-}
-.tile-button:hover {
-    transform: scale(1.05);
-    background-color: #ff4c6e;
-}
-</style>
+    st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
 
-<div class="tile-container">
-    <form action="?section=home" method="get">
-        <button class="tile-button">🏠 Home</button>
-    </form>
-    <form action="?section=topics" method="get">
-        <button class="tile-button">🗣️ Topics</button>
-    </form>
-    <form action="?section=hashtags" method="get">
-        <button class="tile-button">🏷️ Hashtags</button>
-    </form>
-    <form action="?section=ingredients" method="get">
-        <button class="tile-button">🧪 Ingredients</button>
-    </form>
-</div>
-""", unsafe_allow_html=True)
+    # Sidebar Navigation
+    with st.sidebar:
+        st.markdown("# 🧭 Navigation")
+        selected = option_menu(
+            menu_title=None,
+            options=["Home", "Topics", "Hashtags", "Ingredients", "Viral Videos"],
+            icons=["house", "chat", "hash", "capsule", "fire"],
+            menu_icon="cast",
+            default_index=0,
+            styles={
+                "container": {"padding": "0!important", "background-color": "#f0f0f0"},
+                "icon": {"color": "black", "font-size": "20px"},
+                "nav-link": {
+                    "font-size": "18px",
+                    "text-align": "left",
+                    "margin": "5px",
+                    "--hover-color": "#FFDEE9"
+                },
+                "nav-link-selected": {
+                    "background-color": "#FE2C55",
+                    "color": "white",
+                    "font-weight": "bold"
+                },
+            }
+        )
 
-
-    st.title("🧴 Skincare TikTok Trends Dashboard")
-
-    # --- Session State Init ---
-    if "section" not in st.session_state:
-        st.session_state.section = "home"
-
-    # --- Custom Tile Navigation ---
-    st.markdown('<div class="tile-container">', unsafe_allow_html=True)
-
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        if st.button("🏠 Home", key="home_btn"):
-            st.session_state.section = "home"
-    with col2:
-        if st.button("🗣️ Topics", key="topics_btn"):
-            st.session_state.section = "topics"
-    with col3:
-        if st.button("🏷️ Hashtags", key="hashtags_btn"):
-            st.session_state.section = "hashtags"
-    with col4:
-        if st.button("🧪 Ingredients", key="ingredients_btn"):
-            st.session_state.section = "ingredients"
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- Load Data ---
+    # Load data
     keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example = load_data()
     start_dt, end_dt = sidebar_date_filter()
     keywords_filtered = keywords[(keywords["date"] >= start_dt) & (keywords["date"] <= end_dt)]
     topics_filtered = topics[(topics["Timestamp"] >= start_dt) & (topics["Timestamp"] <= end_dt)]
 
-    # --- Section Routing ---
-    section = st.session_state.section
-
-    if section == "home":
+    # Page Routing
+    if selected == "Home":
+        st.title("🧴 Skincare TikTok Trends Dashboard")
         st.markdown("## 👋 Welcome to the Skincare Trend Dashboard")
-        st.markdown("Use the buttons above to explore TikTok skincare trends by **topics**, **hashtags**, or **ingredients**.")
+        st.markdown("Use the navigation menu to explore **topics**, **hashtags**, **ingredients**, or **viral videos**.")
 
-    elif section == "topics":
+    elif selected == "Topics":
         display_collapsible_topics(df=clusters)
         with st.expander("📈 View Filtered Topic Mentions"):
             st.dataframe(topics_filtered)
 
-    elif section == "hashtags":
+    elif selected == "Hashtags":
         display_hashtag_leaderboard(df=hashtags)
 
-    elif section == "ingredients":
+    elif selected == "Ingredients":
         display_ingredient_sentiment_ui(df_sentiments=ingredients, df_examples=ingredients_example)
 
-    st.markdown("---")
-    st.caption("Use the navigation buttons above to switch sections.")
+    elif selected == "Viral Videos":
+        show_top_videos(df=weekly, date_col="date", title="🔥 Most Viral Skincare TikToks This Week")
 
+
+    st.markdown("---")
+    st.caption("Use the navigation menu in the sidebar to switch sections.")
 
 if __name__ == "__main__":
     main()
-
 
