@@ -110,6 +110,13 @@ def filter_short_comments(comments, min_words=4):
     """Remove comments that are too short."""
     return [c for c in comments if len(c.split()) >= min_words]
 
+def extract_hashtags(text):
+    """Extract hashtags from text"""
+    if pd.isna(text):
+        return []
+    hashtags = re.findall(r'#\w+', text.lower())
+    return [tag.replace('#', '') for tag in hashtags]
+
 
 #not needed?
 def combine_text_columns(df, cols=("transcribed_text", "video_description"), new_col="combined_text"):

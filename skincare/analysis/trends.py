@@ -22,50 +22,109 @@ def preprocess_posts(df: pd.DataFrame) -> pd.DataFrame:
     ).str.strip().apply(lambda t: clean_text(t, stopwords=stopwords))
     return df
 
+def preprocess_posts2(df: pd.DataFrame) -> pd.DataFrame:
+    stopwords = get_stopwords(langs=["en"])
+    stopwords += ["music", "speech"]
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['createTimeISO'])
+    df['doc'] = (
+        df['transcribed_text'].fillna('')
+    ).str.strip().apply(lambda t: clean_text(t, stopwords=stopwords))
+    return df
+
 def train_topic_model(docs: list[str]):
-    model = build_topic_model(min_cluster_size=5, min_samples=2, embedding_model=embedding_model)
+    model = build_topic_model(min_cluster_size=7, min_samples=3, embedding_model=embedding_model)
     topics, _ = model.fit_transform(documents=docs)
     return model, topics
 
-def detect_trends(trend_df: pd.DataFrame, z_thresh=2.5, min_history=5, min_count=5):
-    scores = {}
-    for tid, grp in trend_df.groupby("Topic"):
-        freqs = grp["Frequency"].values
-        if len(freqs) < min_history or freqs[-1] < min_count:
-            continue
-        mean_past = np.mean(freqs[:-1])
-        std_past = np.std(freqs[:-1], ddof=0)
-        z = (freqs[-1] - mean_past) / std_past if std_past != 0 else 0
-        if z > z_thresh:
-            scores[tid] = z
-    return scores
+def detect_trends(trend_df: pd.DataFrame, z_thresh=2.5, min_history=5) -> dict[int, float]:
+    trend_df = trend_df.copy()
+    trend_df["Date"] = pd.to_datetime(trend_df["Timestamp"]).dt.normalize()
 
-def detect_bursts(trend_df, s=2, gamma=1.0, smooth_win=1, min_history=5):
-    burst_scores = {}
-    # Ensure timestamps are sorted for consistent binning
-    trend_df = trend_df.sort_values("Timestamp")
-    unique_ts = trend_df["Timestamp"].unique()
-    
-    # Precompute total posts per time bin (Timestamp)
-    total_per_bin = (
-        trend_df
-        .groupby("Timestamp")["Frequency"]
+    total_per_timestamp = (
+        trend_df.groupby("Date")["Frequency"]
         .sum()
-        .reindex(unique_ts, fill_value=0)
-        .values
+        .to_dict()
     )
 
+    scores = {}
     for tid, grp in trend_df.groupby("Topic"):
-        freqs = grp["Frequency"].values.astype(float)  # ✅ fixed here
+        if tid == -1:
+            continue
+
+        freqs = grp["Frequency"].values
+        ts = pd.to_datetime(grp["Timestamp"]).dt.normalize()
+
         if len(freqs) < min_history:
             continue
-        r = freqs
-        d = total_per_bin[: len(r)]
-        n = len(r)
-        q, _, _, _ = burst_detection(r, d, n, s=s, gamma=gamma, smooth_win=smooth_win)
-        if q[-1] > 0:
-            burst_scores[tid] = int(q[-1])
+
+        norm_freqs = np.array([
+            f / total_per_timestamp.get(t, 0) if total_per_timestamp.get(t, 0) > 0 else 0
+            for f, t in zip(freqs, ts)
+        ])
+
+        mean_past = np.mean(norm_freqs[:-1])
+        std_past = np.std(norm_freqs[:-1], ddof=0)
+        z = (norm_freqs[-1] - mean_past) / std_past if std_past != 0 else 0
+
+        if z > z_thresh:
+            scores[tid] = z
+
+    return scores
+
+
+def detect_bursts(trend_df: pd.DataFrame, s=2, gamma=1.0, min_history=5) -> dict[int, int]:
+    from burst_detection import burst_detection
+    import numpy as np
+    import pandas as pd
+
+    burst_scores = {}
+    trend_df = trend_df.copy()
+    trend_df["Date"] = pd.to_datetime(trend_df["Timestamp"]).dt.normalize()
+    trend_df = trend_df.sort_values("Timestamp")
+
+    # Total number of posts per day (not topic freq!)
+    post_counts_per_date = (
+        trend_df.groupby("Date")["Frequency"]
+        .first()
+        .groupby(level=0)
+        .count()
+    )
+
+    for topic_id, group in trend_df.groupby("Topic"):
+        if topic_id == -1 or len(group) < min_history:
+            continue
+
+        group = group.sort_values("Timestamp")
+        frequencies = group["Frequency"].apply(
+            lambda x: x[0] if isinstance(x, (list, np.ndarray)) else x
+        ).astype(float).to_numpy()
+
+        timestamps = pd.to_datetime(group["Timestamp"]).dt.normalize()
+        total_posts = (
+            post_counts_per_date
+            .reindex(timestamps, fill_value=0)
+            .astype(float)
+            .to_numpy()
+        )
+
+        # Filter invalid entries
+        valid = (total_posts > 0) & np.isfinite(frequencies) & np.isfinite(total_posts)
+        r = frequencies[valid]
+        d = total_posts[valid]
+
+        if len(r) < min_history or np.all(r == 0) or np.all(d == 0):
+            continue  # insufficient valid data
+
+        try:
+            q, _, _, _ = burst_detection(r, d, len(r), s=s, gamma=gamma, smooth_win=1)
+            if len(q) > 0 and q[-1] > 0:
+                burst_scores[topic_id] = int(q[-1])
+        except Exception:
+            continue  # burst_detection failed, likely due to malformed input
+
     return burst_scores
+
 
 
 def label_top_trends(trend_scores: dict[int, float],
@@ -77,7 +136,7 @@ def label_top_trends(trend_scores: dict[int, float],
     top_items = sorted(trend_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
 
     rows = []
-    for topic_id, z_score in top_items:
+    for topic_id, score in top_items:
         kws      = get_filtered_keywords(model, topic_id, common, top_n=5)
         examples = (df.loc[df['topic'] == topic_id, 'text']
                       .dropna()
@@ -87,7 +146,7 @@ def label_top_trends(trend_scores: dict[int, float],
         rows.append({
             "TopicID":  topic_id,
             "Label":    label,
-            "Z-score":  z_score,
+            "Score":  score,
             "Keywords": kws
         })
 
@@ -107,7 +166,7 @@ def get_trends(df: pd.DataFrame, min_history: int = 4):
     )
 
     z_scores     = detect_trends(trend_df, z_thresh=2.5, min_history=3)
-    burst_scores = detect_bursts(trend_df, min_history=3, s=2, gamma=1.0)
+    burst_scores = detect_bursts(trend_df, min_history=4, s=2, gamma=1.0)
 
     # e.g. take union, preferring burst level if available
     all_topics = set(z_scores) | set(burst_scores)
