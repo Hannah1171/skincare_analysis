@@ -28,7 +28,7 @@ def prepare_data(cache=True):
 
 if __name__ == "__main__":
     
-    #prepare_data(cache=False)
+    prepare_data(cache=False)
     #df_comments = pd.read_csv('data/comments_sentiment_posts_transcripts.csv')
     #df_comments_recent = filter_by_recent_days(df=df_comments, days=60)
     #model, topic_summary, df_named = run_topic_model(df=df_comments_recent)
