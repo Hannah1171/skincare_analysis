@@ -47,13 +47,15 @@ def sidebar_date_filter():
 # --- Data Loading ---
 def load_data():
     keywords = pd.read_csv("data/keywords.csv", parse_dates=["date"])
-    topics = pd.read_csv("/Users/ritushetkar/Downloads/dummy_topic.csv", parse_dates=["Timestamp"])
+    topics = pd.read_csv("data/dummy_topic.csv", parse_dates=["Timestamp"])
     weekly = pd.read_csv("data/top5_weekly.csv", parse_dates=["date"])
     monthly = pd.read_csv("data/top5_monthly.csv", parse_dates=["date"])
-    clusters = pd.read_csv("/Users/ritushetkar/Downloads/topic_clustering.csv")
+    clusters = pd.read_csv("data/topic_clustering.csv")
     hashtags=pd.read_csv("data/hashags_result_table.csv", parse_dates=["date"])
-    ingredients = pd.read_csv("/Users/ritushetkar/env_capstone/data/ingredients_results.csv")
-    ingredients_example=pd.read_csv('/Users/ritushetkar/env_capstone/data/ingredients_examplecomments.csv')
+    ingredients = pd.read_csv("data/ingredients_results.csv")
+    ingredients_example=pd.read_csv('data/ingredients_examplecomments.csv')
+
+    
 
     weekly["week"] = weekly["date"].dt.isocalendar().week
     monthly["month"] = monthly["date"].dt.to_period("M")
@@ -333,8 +335,8 @@ def main():
         st.markdown("# 🧭 Navigation")
         selected = option_menu(
             menu_title=None,
-            options=["Home", "Topics", "Hashtags", "Ingredients", "Viral Videos"],
-            icons=["house", "chat", "hash", "capsule", "fire"],
+            options=["Home", "Topics", "Hashtags", "Ingredients", "Viral Videos", "Successful Posts"],
+            icons=["house", "chat", "hash", "capsule","camera", "rocket"], #"fire" for trends
             menu_icon="cast",
             default_index=0,
             styles={
@@ -379,6 +381,10 @@ def main():
 
     elif selected == "Viral Videos":
         show_top_videos(df=weekly, date_col="date", title="🔥 Most Viral Skincare TikToks This Week")
+
+    elif selected == "Successful Posts":
+        show_top_videos(df=weekly, date_col="date", title="🔥 Most Viral Skincare TikToks This Week")
+
 
 
     st.markdown("---")
