@@ -19,7 +19,7 @@ from gensim.corpora import Dictionary
 llm = pipeline("text2text-generation", model="google/flan-t5-large")
 
 # Sentence embedding model for label deduplication
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+embedding_model = SentenceTransformer("all-mpnet-base-v2")  #('all-MiniLM-L6-v2')
 
 # Normalize topic labels for deduplication
 def normalize_label(label: str) -> str:
