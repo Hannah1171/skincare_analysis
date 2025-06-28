@@ -18,6 +18,10 @@ Green = "#3CB54A"
 POSITIVE_COLOR = "#6FBF73"  
 NEUTRAL_COLOR = "#B0B0B0"   
 NEGATIVE_COLOR = "#D96C7C"  
+#POSITIVE_FILL = "#6FBF737E"  
+#NEGATIVE_FILL = "#D96C7C3B"  
+POSITIVE_FILL = "rgba(111, 191, 115, 0.49)"  # from #6FBF737E (hex alpha 7E ≈ 49%)
+NEGATIVE_FILL = "rgba(217, 108, 124, 0.23)"  # from #D96C7C3B (hex alpha 3B ≈ 23%)
 
 
 rcParams.update({
@@ -55,14 +59,18 @@ def load_data():
     ingredients = pd.read_csv("data/ingredients_results.csv")
     ingredients_example=pd.read_csv('data/ingredients_examplecomments.csv')
 
-    
+    successful_post_general = pd.read_csv("data/successful_post_range.csv") 
+    successful_post_author_fans = pd.read_csv("data/shap_vs_author_fans.csv") 
+    successful_post_hour_posting=pd.read_csv("data/shap_vs_hour_posting.csv") 
+    successful_post_video_duration=pd.read_csv("data/shap_vs_video_duration.csv") 
+    successful_post_word_count=pd.read_csv("data/shap_vs_word_count.csv") 
+    successful_post_is_ad=pd.read_csv("data/shap_vs_isAd.csv") 
 
     weekly["week"] = weekly["date"].dt.isocalendar().week
     monthly["month"] = monthly["date"].dt.to_period("M")
     
-    return keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example
+    return keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example, successful_post_general, successful_post_author_fans, successful_post_hour_posting, successful_post_video_duration, successful_post_word_count, successful_post_is_ad
 
-# --- Plotting Functions ---
 def plot_mentions(df):
     return px.line(df, x="date", y="mentions", color="keyword",
                    color_discrete_sequence=[TIKTOK_PINK],
@@ -73,7 +81,6 @@ def plot_tfidf(df):
                    color_discrete_sequence=[TIKTOK_PINK],
                    title="TF-IDF Score Over Time", template="plotly_white")
 
-# --- Display Top Videos ---
 def show_top_videos(df, date_col, title):
     st.header(title)
     valid = df[df["bucketUrl"].notna()].head(6)
@@ -99,7 +106,7 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
     df["Examples"] = df["Examples"].apply(ast.literal_eval)
     total_mentions = df["Count"].sum()
 
-    st.subheader("What does Gen Z talk about?")
+    st.header("💬 What does Gen Z talk about?")
     cols = st.columns(2)
 
     for idx, (_, row) in enumerate(df.iterrows()):
@@ -199,7 +206,7 @@ def display_hashtag_leaderboard(df: pd.DataFrame):
     if exclude_common:
         top10 = top10[~top10["hashtags_name"].isin(excluded_tags)]
 
-    st.markdown("### 🏆 Hashtag Leaderboard")
+    st.header("🏆 Hashtag Leaderboard")
 
     col1, col2 = st.columns(2)
 
@@ -256,12 +263,9 @@ def display_hashtag_leaderboard(df: pd.DataFrame):
 
                 st.plotly_chart(fig, use_container_width=True)
 
-
-
-
 def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.DataFrame):
     
-    st.title("🧪 Top 10 Discussed Skincare Ingredients Overall")
+    st.header("🧪 Top 10 Discussed Skincare Ingredients Overall")
 
     df_sentiment=df_sentiments.copy()
     df_comments=df_examples.copy()
@@ -326,6 +330,179 @@ def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.D
                 st.plotly_chart(fig, use_container_width=True)
 
 
+def display_successful_post_insights(successful_post_general,
+                                      successful_post_author_fans,
+                                      successful_post_hour_posting,
+                                      successful_post_video_duration,
+                                      successful_post_word_count,
+                                      successful_post_is_ad):
+
+    # 1. Horizontal bar chart of feature importance (minimalist, pink)
+    st.header("🚀 What makes a post go viral?")
+    st.badge("DISCLAIMER", color='blue')
+    st.markdown("Based on data of the past six months, we analyzed what drives TikTok virality. Key factors include follower count, post timing, video length, ad presence, and caption length. These elements strongly influence visibility and engagement." \
+    "" \
+    " However, not all success factors are captured in the data. For example, quickly replying to comments, leveraging trending sounds, and fostering community interaction also play a major role. Notably, the strongest predictor of virality is how often a post is shared, highlighting the power of social connection over pure algorithmic reach.")
+    
+    sorted_df = successful_post_general.sort_values("mean_abs_shap", ascending=True)
+    labels = [
+        "Caption Word Count",
+        "Is Ad?",
+        "Length of Video",
+        "Time of Posting",
+        "Number of Followers"
+    ]
+
+    st.subheader("Key drivers of post visibility")
+
+    fig = go.Figure(go.Bar(
+        x=sorted_df["mean_abs_shap"],
+        y=sorted_df["feature"],
+        orientation="h",
+        marker=dict(color=TIKTOK_PINK),
+        text = [f"<b>&nbsp;&nbsp;{feat}</b>" for feat in labels],
+        textposition="inside",
+        insidetextanchor="start",
+        insidetextfont=dict(color="white", size=14),
+    ))
+
+    fig.update_layout(
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+        yaxis=dict(
+            title=dict(
+                text="Feature Drivers",
+                font=dict(size=18, color="black")
+            ),
+            showticklabels=False,
+            showgrid=False
+        ),
+        margin=dict(t=10, b=20, l=20, r=20),
+        showlegend=False,
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.divider() 
+
+    # 2. Interactive sections per feature
+    st.subheader("Optimal settings for virality")
+    st.markdown("<br>", unsafe_allow_html=True)
+    successful_post_general["optimal_value_range"] = successful_post_general["optimal_value_range"].apply(
+    lambda x: x.replace(".0", "") if x.endswith(".0") else x
+)
+    cols = st.columns(5)
+    labels = ["Followers", "Posting Time", "Video Length", "Caption Word Count", "Ad"]
+    #ävalues = successful_post_general['optimal_value_range']
+    values = ["> 500k", "18–23h", "20–30s", "16 words", "No ad"]
+    
+    for col, label, value in zip(cols, labels, values):
+        col.metric(label=label, value=value)
+
+    # Define label-to-feature mapping
+    label_to_feature = {
+        "Followers": "author_fans",
+        "Posting Time": "hour_posting",
+        "Video Length": "video_duration",
+        "Caption Word Count": "word_count",
+        "Ad": "is_ad"
+    }
+
+    feature_data_map = {
+        "author_fans": successful_post_author_fans,
+        "hour_posting": successful_post_hour_posting,
+        "video_duration": successful_post_video_duration,
+        "word_count": successful_post_word_count,
+        "is_ad": successful_post_is_ad
+    }
+
+    # Selectbox with display labels
+    st.markdown("""
+    <div style='font-size:20px; font-weight:600; color:#000; margin-bottom:0px;'>
+    Select a driver to explore
+    </div>
+    """, unsafe_allow_html=True)
+    selected_label = st.selectbox("", list(label_to_feature.keys()))
+    selected_feature = label_to_feature[selected_label]
+
+    # Load corresponding data
+    df_plot = feature_data_map[selected_feature]
+    x_col, y_col = df_plot.columns
+
+    x = df_plot[x_col].values
+    y = df_plot[y_col].values
+
+    fig = go.Figure()
+
+    if selected_feature == "is_ad":
+        x = df_plot[x_col]
+        y = df_plot[y_col]
+        colors = [POSITIVE_FILL if val >= 0 else NEGATIVE_FILL for val in y]
+
+        fig = go.Figure(go.Bar(
+            x=x,
+            y=y,
+            marker_color=colors
+        ))
+
+        fig.update_layout(
+            xaxis_title="Ad (0 = No, 1 = Yes)",
+            yaxis_title="Impact on Virality",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            showlegend=False,
+            margin=dict(l=20, r=20, t=10, b=20)
+        )
+    else:
+
+        # Add main line (black)
+        fig.add_trace(go.Scatter(
+            x=x,
+            y=y,
+            mode="lines",
+            line=dict(color="black", width=2),
+            showlegend=False,
+            name="Impact Line"
+        ))
+
+        # Add positive fill
+        fig.add_trace(go.Scatter(
+            x=x,
+            y=[val if val > 0 else 0 for val in y],
+            fill='tozeroy',
+            mode='none',
+            fillcolor=POSITIVE_FILL,
+            hoverinfo='skip',
+            showlegend=False
+        ))
+
+        # Add negative fill
+        fig.add_trace(go.Scatter(
+            x=x,
+            y=[val if val < 0 else 0 for val in y],
+            fill='tozeroy',
+            mode='none',
+            fillcolor=NEGATIVE_FILL,
+            hoverinfo='skip',
+            showlegend=False
+        ))
+
+        # Add horizontal reference line
+        fig.add_hline(y=0, line_dash="dot", line_color="gray")
+
+        fig.update_layout(
+            xaxis_title=selected_label,
+            yaxis_title="Impact on Virality",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            margin=dict(l=20, r=20, t=10, b=20),
+            showlegend=False
+        )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
 
 def main():
     st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
@@ -357,7 +534,7 @@ def main():
         )
 
     # Load data
-    keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example = load_data()
+    keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example, successful_post_general, successful_post_author_fans, successful_post_hour_posting, successful_post_video_duration, successful_post_word_count, successful_post_is_ad = load_data()
     start_dt, end_dt = sidebar_date_filter()
     keywords_filtered = keywords[(keywords["date"] >= start_dt) & (keywords["date"] <= end_dt)]
     topics_filtered = topics[(topics["Timestamp"] >= start_dt) & (topics["Timestamp"] <= end_dt)]
@@ -383,7 +560,12 @@ def main():
         show_top_videos(df=weekly, date_col="date", title="🔥 Most Viral Skincare TikToks This Week")
 
     elif selected == "Successful Posts":
-        show_top_videos(df=weekly, date_col="date", title="🔥 Most Viral Skincare TikToks This Week")
+        display_successful_post_insights(successful_post_general,
+                                      successful_post_author_fans,
+                                      successful_post_hour_posting,
+                                      successful_post_video_duration,
+                                      successful_post_word_count,
+                                      successful_post_is_ad)
 
 
 
