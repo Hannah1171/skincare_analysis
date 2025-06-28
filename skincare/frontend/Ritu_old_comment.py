@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from streamlit_option_menu import option_menu
 import plotly.graph_objects as go
+from streamlit_extras.metric_cards import style_metric_cards 
 
 
 # --- Constants ---
@@ -107,6 +108,15 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
     total_mentions = df["Count"].sum()
 
     st.header("💬 What does Gen Z talk about?")
+    st.badge("DISCLAIMER", color='orange')
+    st.text("Please note that the topics on this page are generated automatically by AI clustering and may include noise or miss subtle nuances. This analysis covers only the posts we have collected (via specific hashtags), so some relevant content may be missing.")
+    
+    options = ["Last 30 days", "Last 7 days"]
+    selection = st.segmented_control(
+        label="Time Range",
+        options=options,
+    )
+
     cols = st.columns(2)
 
     for idx, (_, row) in enumerate(df.iterrows()):
@@ -181,91 +191,27 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
                 )
 
                 st.plotly_chart(fig, use_container_width=True)
+    st.markdown("")
+    st.markdown("")
+    st.markdown("##### How Gen Z Talks About Skincare on TikTok")
+    st.markdown("""
+    - Self-expression, discovery & connection
+    - TikTok: Inspiration source & beauty search engine
+    - Product Queries: “Where to buy?” / “What’s the name?”
+    - Comment Tone: Curious, emotional; fosters engagement
+    - Affirmations: “love this”, “thank you” to connect with creators
+    """)
 
-def display_hashtag_leaderboard(df: pd.DataFrame):
-    hashtag_df = df.copy()
-    hashtag_df["week"] = hashtag_df["date"].dt.isocalendar().week
+def display_trends(df: pd.DataFrame):
+    st.header("🔥 What’s Hot Next in Skincare?")
 
-    latest_week = hashtag_df["week"].max()
-    latest_week_data = hashtag_df[hashtag_df["week"] == latest_week]
 
-    last_week = latest_week - 1
-    last_week_data = hashtag_df[hashtag_df["week"] == last_week][["hashtags_name", "post_count"]]
-
-    merged = latest_week_data.merge(last_week_data, on="hashtags_name", how="left", suffixes=("", "_last"))
-    merged["post_count_last"] = merged["post_count_last"].fillna(0)
-    merged["change"] = merged["post_count"] - merged["post_count_last"]
-
-    merged = merged.sort_values("post_count", ascending=False)
-    merged["rank"] = merged["post_count"].rank(method="dense", ascending=False).astype(int)
-    top10 = merged[merged["rank"] <= 10]
-
-    st.sidebar.header("⚙️ Options for Hashtags")
-    exclude_common = st.sidebar.checkbox("🚫 Exclude common skincare hashtags", value=True)
-    excluded_tags = ['skincare', 'skincareroutine', 'hautpflege', 'hautpflegeroutine']
-    if exclude_common:
-        top10 = top10[~top10["hashtags_name"].isin(excluded_tags)]
-
-    st.header("🏆 Hashtag Leaderboard")
-
-    col1, col2 = st.columns(2)
-
-    for i, (_, row) in enumerate(top10.iterrows()):
-        col = col1 if i % 2 == 0 else col2
-
-        with col:
-            trend_icon = "⬆" if row["change"] > 0 else "⬇" if row["change"] < 0 else "➡️"
-            trend_color = "green" if row["change"] > 0 else "red" if row["change"] < 0 else "gray"
-
-            with st.expander(f"#{row['rank']}  |  🔖 {row['hashtags_name']}  {trend_icon}"):
-                st.markdown(
-                    f"<span style='color:{trend_color}; font-size:22px;'>Trend: {trend_icon}</span>",
-                     unsafe_allow_html=True
-                )
-
-                colA, colB, colC = st.columns([3, 2, 1])
-                with colA:
-                    st.markdown(f"<span style='font-size:18px'>📌 <b>{row['hashtags_name']}</b></span>", unsafe_allow_html=True)
-                with colB:
-                    st.markdown(f"<span style='font-size:18px'>{int(row['post_count'])} posts</span>", unsafe_allow_html=True)
-                with colC:
-                    st.markdown(f"<span style='font-size:24px; color:{trend_color}'>{trend_icon}</span>", unsafe_allow_html=True)
-
-                trend_data = hashtag_df[hashtag_df["hashtags_name"] == row["hashtags_name"]].sort_values("date")
-
-                st.markdown(
-                    f"""
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <h4 style="margin: 0;">Smoothed Post Count Trend: #{row['hashtags_name']}</h4>
-                        <span title="This is a 3-week moving average of post count to reduce noise and reveal consistent trends.">ℹ️</span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=trend_data["date"],
-                    y=trend_data["post_share_of_week"],
-                    mode='lines',
-                    #fill='tozeroy',
-                    line=dict(color=TIKTOK_PINK, width=3),
-                    name='Post Count'
-                ))
-
-                fig.update_layout(
-                    template="plotly_white",
-                    showlegend=False,
-                    margin=dict(l=0, r=0, t=40, b=20),
-                    yaxis=dict(range=[0, 1], showgrid=False),
-                    xaxis=dict(showgrid=False)
-                )
-
-                st.plotly_chart(fig, use_container_width=True)
 
 def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.DataFrame):
     
-    st.header("🧪 Top 10 Discussed Skincare Ingredients Overall")
+    st.header("🧪 Ingredients Gen Z talks about") #🧪💊
+    st.badge("DISCLAIMER", color='orange')
+    st.markdown("Based..")
 
     df_sentiment=df_sentiments.copy()
     df_comments=df_examples.copy()
@@ -329,6 +275,10 @@ def display_ingredient_sentiment_ui(df_sentiments:pd.DataFrame, df_examples:pd.D
                 fig.update_layout(margin=dict(t=10, b=10), showlegend=False, height=280)
                 st.plotly_chart(fig, use_container_width=True)
 
+    st.divider()
+    st.header("🏷️ Brands")
+
+
 
 def display_successful_post_insights(successful_post_general,
                                       successful_post_author_fans,
@@ -339,7 +289,7 @@ def display_successful_post_insights(successful_post_general,
 
     # 1. Horizontal bar chart of feature importance (minimalist, pink)
     st.header("🚀 What makes a post go viral?")
-    st.badge("DISCLAIMER", color='blue')
+    st.badge("DISCLAIMER", color='orange')
     st.markdown("Based on data of the past six months, we analyzed what drives TikTok virality. Key factors include follower count, post timing, video length, ad presence, and caption length. These elements strongly influence visibility and engagement." \
     "" \
     " However, not all success factors are captured in the data. For example, quickly replying to comments, leveraging trending sounds, and fostering community interaction also play a major role. Notably, the strongest predictor of virality is how often a post is shared, highlighting the power of social connection over pure algorithmic reach.")
@@ -502,7 +452,14 @@ def display_successful_post_insights(successful_post_general,
 
     st.plotly_chart(fig, use_container_width=True)
 
-
+def display_home():
+    st.title("✨ Welcome to the Skincare Dashboard")
+    st.badge("DISCLAIMER", color='orange')
+    st.markdown("The data used for the dashboard consist of the last 9 months and was primaliry collected by scraping TikTok using the following hahstags #skincare, #...")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Posts each month", "1.500")
+    col2.metric("Comments each month", "8.500")
+    col3.metric("Updated", "Weekly") 
 
 def main():
     st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
@@ -512,8 +469,8 @@ def main():
         st.markdown("# 🧭 Navigation")
         selected = option_menu(
             menu_title=None,
-            options=["Home", "Topics", "Hashtags", "Ingredients", "Viral Videos", "Successful Posts"],
-            icons=["house", "chat", "hash", "capsule","camera", "rocket"], #"fire" for trends
+            options=["Home", "Topics", "Trends", "Ingredients & Brands", "Successful Posts", "Viral Videos", ],
+            icons=["house", "chat", "fire", "capsule", "rocket", "camera"], 
             menu_icon="cast",
             default_index=0,
             styles={
@@ -535,25 +492,18 @@ def main():
 
     # Load data
     keywords, topics, weekly, monthly, clusters, hashtags, ingredients, ingredients_example, successful_post_general, successful_post_author_fans, successful_post_hour_posting, successful_post_video_duration, successful_post_word_count, successful_post_is_ad = load_data()
-    start_dt, end_dt = sidebar_date_filter()
-    keywords_filtered = keywords[(keywords["date"] >= start_dt) & (keywords["date"] <= end_dt)]
-    topics_filtered = topics[(topics["Timestamp"] >= start_dt) & (topics["Timestamp"] <= end_dt)]
 
     # Page Routing
     if selected == "Home":
-        st.title("🧴 Skincare TikTok Trends Dashboard")
-        st.markdown("## 👋 Welcome to the Skincare Trend Dashboard")
-        st.markdown("Use the navigation menu to explore **topics**, **hashtags**, **ingredients**, or **viral videos**.")
+        display_home()
 
     elif selected == "Topics":
         display_collapsible_topics(df=clusters)
-        with st.expander("📈 View Filtered Topic Mentions"):
-            st.dataframe(topics_filtered)
 
-    elif selected == "Hashtags":
-        display_hashtag_leaderboard(df=hashtags)
+    elif selected == "Trends":
+        display_trends(df=hashtags)
 
-    elif selected == "Ingredients":
+    elif selected == "Ingredients & Brands":
         display_ingredient_sentiment_ui(df_sentiments=ingredients, df_examples=ingredients_example)
 
     elif selected == "Viral Videos":
@@ -567,10 +517,6 @@ def main():
                                       successful_post_word_count,
                                       successful_post_is_ad)
 
-
-
-    st.markdown("---")
-    st.caption("Use the navigation menu in the sidebar to switch sections.")
 
 if __name__ == "__main__":
     main()
