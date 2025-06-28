@@ -32,8 +32,7 @@ def filter_by_occurrence(texts, top_ngrams, min_occurrence=3):
     ]
 
 
-def get_trending_keywords_with_tfidf(filename, number_of_days=28):
-    df = pd.read_csv(f"{filename}")
+def get_trending_keywords_with_tfidf(df, number_of_days=28):
     recent_posts = filter_by_recent_days(df=df, days=number_of_days)
 
     # Add week column

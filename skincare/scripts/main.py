@@ -28,7 +28,7 @@ def prepare_data(cache=True):
 
 if __name__ == "__main__":
     
-    prepare_data(cache=False)
+    #prepare_data(cache=False)
     #df_comments = pd.read_csv('data/comments_sentiment_posts_transcripts.csv')
     #df_comments_recent = filter_by_recent_days(df=df_comments, days=60)
     #model, topic_summary, df_named = run_topic_model(df=df_comments_recent)
@@ -40,7 +40,10 @@ if __name__ == "__main__":
     top_df.to_csv("data/trend_top.csv")
     trends.to_csv("data/trends.csv")
     print(topics)
+    print(trends)
 
+    #trend_tdidf = get_trending_keywords_with_tfidf(posts)
+    #trend_tdidf.to_csv("data/trends_tdidf")
 
     #topic_summary.to_csv("data/topic_summary.csv", index=False)
     #df_named.to_csv("data/df_named.csv", index=False)
