@@ -11,6 +11,10 @@ from skincare.analysis.hashtags import get_weekly_hashtag_trends
 from skincare.analysis.ingredients import analyze_ingredient_sentiments, get_top_example_comments
 from skincare.pipeline.ingredientsBeiersdorf import load_ingredient_map
 from skincare.analysis.competitor_analysis import get_brand_sentiment_summary
+from skincare.analysis.viralMusic import get_top5_trending_music
+import pandas as pd
+
+
 def prepare_data(cache=False):
     # Hashtags unnested
     df_hashtags = load_hashtags_posts(cache=False)
@@ -46,8 +50,8 @@ run_sentiment_analysis_on_comments(
 #trends.to_csv("data/trends.csv", index=False)
 
 
-top5_weekly = get_top_viral_videos("//Users/ritushetkar/env_capstone/data/comments_posts_transcripts.csv")
-top5_weekly.to_csv("data/top5_weekly.csv", index=False)
+#top5_weekly = get_top_viral_videos("//Users/ritushetkar/env_capstone/data/comments_posts_transcripts.csv")
+#top5_weekly.to_csv("data/top5_weekly.csv", index=False)
  
 
 #hashags_result_table = get_weekly_hashtag_trends('data/hashtags_posts.csv')
@@ -72,3 +76,8 @@ top5_weekly.to_csv("data/top5_weekly.csv", index=False)
         #         )
 #brands_examples_df.to_csv("data/brand_sentiment_summary_examples.csv", index=False
          #        )
+
+music=pd.read_csv("/Users/ritushetkar/Downloads/musicViral_Combined.csv")
+viralMusic=get_top5_trending_music(music)
+viralMusic.to_csv("data/top5_viralMusic.csv", index=False
+             )

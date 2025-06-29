@@ -70,8 +70,10 @@ def load_data():
     brands_examples=pd.read_csv("/Users/ritushetkar/env_capstone/data/brand_sentiment_summary_examples.csv")
     weekly["week"] = weekly["date"].dt.isocalendar().week
 
+    music=pd.read_csv("/Users/ritushetkar/env_capstone/data/top5_viralMusic.csv")
+
     
-    return keywords, topics, weekly, clusters, hashtags, ingredients, ingredients_example, successful_post_general, successful_post_author_fans, successful_post_hour_posting, successful_post_video_duration, successful_post_word_count, successful_post_is_ad, brands, brands_examples
+    return keywords, topics, weekly, clusters, hashtags, ingredients, ingredients_example, successful_post_general, successful_post_author_fans, successful_post_hour_posting, successful_post_video_duration, successful_post_word_count, successful_post_is_ad, brands, brands_examples, music
 
 def plot_mentions(df):
     return px.line(df, x="date", y="mentions", color="keyword",
@@ -119,7 +121,7 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
     st.badge("DISCLAIMER", color='orange')
     st.text("Please note that the topics on this page are generated automatically by AI clustering and may include noise or miss subtle nuances. This analysis covers only the posts we have collected (via specific hashtags), so some relevant content may be missing.")
     
-    options = ["Last 30 days", "Last 7 days"]
+    options = ["Last 30 days", "Last 60 days"]
     selection = st.segmented_control(
         label="Time Range",
         options=options,
@@ -201,17 +203,43 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
                 st.plotly_chart(fig, use_container_width=True)
     st.markdown("")
     st.markdown("")
-    st.markdown("##### How Gen Z Talks About Skincare on TikTok")
-    st.markdown("""
-    - Self-expression, discovery & connection
-    - TikTok: Inspiration source & beauty search engine
-    - Product Queries: “Where to buy?” / “What’s the name?”
-    - Comment Tone: Curious, emotional; fosters engagement
-    - Affirmations: “love this”, “thank you” to connect with creators
-    """)
+
 
 def display_trends(df: pd.DataFrame):
+   
     st.header("🔥 What’s Hot Next in Skincare?")
+    st.badge("DISCLAIMER", color='orange')
+    st.markdown("The trends shown are based on patterns identified in the last 60 " \
+    "days and aim to highlight possible shifts in content virality. Percentage changes" \
+    " reflect the difference compared to the previous week. These are not definitive predictions "
+    "and should not be interpreted as guarantees of future outcomes. Social media dynamics evolve " \
+    "quickly and trends may shift due to platform changes, cultural developments"
+    " or external events. Use these insights as directional indicators, not certainties.")
+    st.markdown("")
+    st.markdown("")
+    titles = ["Dame Un Grrr", "Morning routine", "Korean Skincare", "Glow-up"]
+    deltas = ["↑ +82%",     "↑ +28%",          "↑ +25%",           "↑ +34%"]
+
+    cols = st.columns(4)
+    for col, title, delta in zip(cols, titles, deltas):
+        col.markdown(f"""
+        <div style="text-align:center;">
+            <span style="
+            font-size:25px;
+            font-weight:bold;
+            color:#FE2C55;
+            line-height:1.2;
+            display:block;
+            ">{title}</span>
+            <span style="
+            font-size:18px;
+            color:darkgray;
+            line-height:1.9;
+            display:block;
+            ">{delta}</span>
+        </div>
+        """, unsafe_allow_html=True)
+
 
 
 
@@ -464,18 +492,20 @@ def display_successful_post_insights(successful_post_general,
     st.plotly_chart(fig, use_container_width=True)
 
 def display_home():
+    st.image("/Users/ritushetkar/Desktop/image.png", use_container_width=True)
     st.title("✨ Welcome to the Skincare Dashboard")
     st.badge("DISCLAIMER", color='orange')
-    st.markdown("The data used for the dashboard consist of the last 9 months and was primaliry collected by scraping TikTok using the following hahstags #skincare, #skincareroutine, #hautpflege, #hautpflegeroutine.")
+    st.markdown("The data used for the dashboard consists of the last 9 months and was collected by scraping TikTok using the following hahstags #skincare, #skincareroutine, #hautpflege, #hautpflegeroutine.")
+    st.markdown("")
     col1, col2, col3 = st.columns(3)
     col1.metric("Posts each month", "1.500")
     col2.metric("Comments each month", "8.500")
     col3.metric("Updated", "Weekly") 
-
-    st.markdown("### 🧑‍💻 How do GenZ talk about skincare?")
-    st.badge("DISCLAIMER", color='orange')
+    st.divider()
+    st.markdown("### 🧑‍💻 How does GenZ talk about skincare?")
+    
     st.markdown("By analyzing the most frequent word combinations (n-grams) in TikTok comments, we surfaced common phrases GenZ uses when talking about skincare. " \
-    "These phrases reflect curiosity, appreciation, and a desire to connect—with both products and creators.")
+    "These phrases reflect curiosity, appreciation, and a desire to connect, with both products and creators.")
     # Custom HTML table with CSS
     st.markdown("""
     <style>
@@ -528,60 +558,22 @@ def display_home():
         </tr>
         <tr>
         <td><strong>Affirmations</strong></td>
-        <td>“love this”, “thank you” — to connect with creators</td>
+        <td>“love this”, “thank you” to connect with creators</td>
         </tr>
     </tbody>
     </table>
     """, unsafe_allow_html=True)
 
-def display_hashtag_leaderboard(df: pd.DataFrame, top_n: int = 10):
-    st.markdown("### 📈 Trending Hashtags Leaderboard")
-    st.badge("DISCLAIMER", color='orange')
-    st.markdown("This visual highlights the top trending skincare hashtags on TikTok, " \
-    "showing which ones are gaining the most attention this week. For each hashtag," \
-    " we can see how popular it is now compared to the previous two weeks, " \
-    "along with a simple trendline that shows whether it's rising, stable, or dropping in popularity")
-
-    # Exclude common skincare hashtags
+def display_hashtag_leaderboard(df: pd.DataFrame):
+    st.subheader("Trending Hashtags Leaderboard")
+    st.markdown("")
+    st.markdown("")
     exclude_tags = ["skincare", "skincareroutine", "hautpflege", "hautpflegeroutine"]
     df = df[~df["hashtag_name"].str.lower().isin(exclude_tags)]
+    df_sorted = df.sort_values(by="this_week_share", ascending=False).head(10).reset_index(drop=True)
 
-    # Sort and get top N
-    df_sorted = df.sort_values(by="this_week_share", ascending=False).head(top_n).reset_index(drop=True)
-
-    # CSS styling
-    st.markdown("""
-        <style>
-            .leaderboard-header {
-                font-size: 20px; font-weight: bold; padding-bottom: 10px;
-            }
-            .leaderboard-cell {
-                font-size: 16px;
-            }
-            .row-space {
-                margin-bottom: 16px;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Header
-    col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 3])
-    col1.markdown("<div class='leaderboard-header'>Rank</div>", unsafe_allow_html=True)
-    col2.markdown("<div class='leaderboard-header'>Hashtags</div>", unsafe_allow_html=True)
-    col3.markdown("<div class='leaderboard-header'>% This Week</div>", unsafe_allow_html=True)
-    col4.markdown("<div class='leaderboard-header'>% Last Week</div>", unsafe_allow_html=True)
-    col5.markdown("<div class='leaderboard-header'>Trend</div>", unsafe_allow_html=True)
-
-    st.markdown("<hr style='margin-top: -10px; margin-bottom: 20px; border: 1px solid #ddd;' />", unsafe_allow_html=True)
-    # Rows
-    for i, row in df_sorted.iterrows():
-        trend_values = [
-            row["week_before_last_share"],
-            row["last_week_share"],
-            row["this_week_share"]
-        ]
-
-        # Mini trend chart
+    def render_row(i, row):
+        trend_values = [row["week_before_last_share"], row["last_week_share"], row["this_week_share"]]
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=[1, 2, 3],
@@ -600,26 +592,53 @@ def display_hashtag_leaderboard(df: pd.DataFrame, top_n: int = 10):
             paper_bgcolor='rgba(0,0,0,0)',
         )
 
-        # Columns per row
         col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 3])
-        col1.markdown(f"<div class='leaderboard-cell'>{i+1}</div>", unsafe_allow_html=True)
-        col2.markdown(f"<div class='leaderboard-cell'>{row['hashtag_name']}</div>", unsafe_allow_html=True)
-        col3.markdown(f"<div class='leaderboard-cell'>{row['this_week_share'] * 100:.1f}%</div>", unsafe_allow_html=True)
-        col4.markdown(f"<div class='leaderboard-cell'>{row['last_week_share'] * 100:.1f}%</div>", unsafe_allow_html=True)
+        col1.markdown(f"{i+1}")
+        col2.markdown(f"{row['hashtag_name']}")
+        col3.markdown(f"{row['this_week_share'] * 100:.1f}%")
+        col4.markdown(f"{row['last_week_share'] * 100:.1f}%")
         col5.plotly_chart(fig, use_container_width=False)
-
-        # Add vertical space between rows
         st.markdown("<div class='row-space'></div>", unsafe_allow_html=True)
+
+    # Header
+    col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 3])
+    col1.markdown("**Rank**")
+    col2.markdown("**Hashtags**")
+    col3.markdown("**% This Week**")
+    col4.markdown("**% Last Week**")
+    col5.markdown("**Trend**")
+    st.markdown("<hr style='margin-top: -10px; margin-bottom: 20px; border: 1px solid #ddd;' />", unsafe_allow_html=True)
+
+    # State variable for button-based reveal
+    if "show_more_hashtags" not in st.session_state:
+        st.session_state.show_more_hashtags = False
+
+    # Show first 5
+    for i, row in df_sorted.head(5).iterrows():
+        render_row(i, row)
+
+    # Show button
+    if not st.session_state.show_more_hashtags:
+        if st.button("See more hashtags"):
+            st.session_state.show_more_hashtags = True
+
+    # Show 6–10 if button clicked
+    if st.session_state.show_more_hashtags:
+        for i, row in df_sorted.iloc[5:].iterrows():
+            render_row(i, row)
+
+
+
 
 
 def display_brand_sentiment_ui(df_sentiment: pd.DataFrame, df_examples: pd.DataFrame):
-    st.header("🏷️ Brands TikTok Talks About")
-    st.badge("DISCLAIMER", color='orange')
+    st.subheader("Explore your Competitors")
+    
     st.markdown("This function analyzes the posts to see how people talk about skincare brands that Beiersdorf is interested in. It checks whether the mentiosn of each brand are positive," \
     "neutral, or negative and summarizes this in a table with its share." \
     " It also picks real example posts for each brand and sentiment type, helping " \
-    "you understand not just how often a brand is talked about — but how people feel about it.")
-    st.caption("Comments and sentiments are extracted from TikTok using AI-based text matching.")
+    "you understand not just how often a brand is talked about but how people feel about it.")
+   
 
     # --- FIX COLUMN CASE ---
     df_sentiment.columns = df_sentiment.columns.str.lower()
@@ -696,9 +715,49 @@ def display_brand_sentiment_ui(df_sentiment: pd.DataFrame, df_examples: pd.DataF
 
 
 
+def display_top5_music(df: pd.DataFrame):
+    st.divider()
+    st.subheader("Top 5 Trending Music This Week")
+    st.markdown("")
+    st.markdown("")
+    df = df.head(10).reset_index(drop=True)
+
+    if "show_more_music" not in st.session_state:
+        st.session_state.show_more_music = False
+
+    def render_music(idx, row):
+        col1, col2 = st.columns([2, 2])
+        with col1:
+            st.markdown(f"**#{idx + 1}: {row['musicName']}**")
+            st.markdown(f"*by {row['musicAuthor']}*")
+
+        with col2:
+            if row['playUrl']:
+                st.audio(row['playUrl'])
+            else:
+                st.warning("Audio not available")
+
+
+
+    # Display top 5
+    for idx, row in df.head(5).iterrows():
+        render_music(idx, row)
+
+    # Reveal next 5 on button click
+    if not st.session_state.show_more_music:
+        if st.button("See more music"):
+            st.session_state.show_more_music = True
+
+    if st.session_state.show_more_music:
+        for idx, row in df.iloc[5:].iterrows():
+            render_music(idx, row)
+
+
+
+
 def main():
     st.set_page_config(page_title="Skincare TikTok Trends", layout="wide")
-    st.image("/Users/ritushetkar/Desktop/image.png", use_container_width=True)
+    
 
     # Sidebar Navigation
     with st.sidebar:
@@ -727,7 +786,7 @@ def main():
         )
 
     # Load data
-    keywords, topics, weekly, clusters, hashtags, ingredients, ingredients_example, successful_post_general, successful_post_author_fans, successful_post_hour_posting, successful_post_video_duration, successful_post_word_count, successful_post_is_ad, brands, brands_examples= load_data()
+    keywords, topics, weekly, clusters, hashtags, ingredients, ingredients_example, successful_post_general, successful_post_author_fans, successful_post_hour_posting, successful_post_video_duration, successful_post_word_count, successful_post_is_ad, brands, brands_examples, music= load_data()
 
     # Page Routing
     if selected == "Home":
@@ -738,7 +797,14 @@ def main():
 
     elif selected == "Trends":
         display_trends(df=hashtags)
+        st.markdown("")
+        st.markdown("")
+        st.markdown("")
         display_hashtag_leaderboard(df=hashtags)
+        st.markdown("")
+        st.markdown("")
+        st.markdown("")
+        display_top5_music(df=music)
 
     elif selected == "Ingredients & Brands":
         display_ingredient_sentiment_ui(df_sentiments=ingredients, df_examples=ingredients_example)
