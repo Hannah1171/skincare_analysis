@@ -6,9 +6,9 @@ def get_top_viral_videos(file_path: str):
     df = df.dropna(subset=['date'])
 
     df['week'] = df['date'].dt.isocalendar().week
-    df['month'] = df['date'].dt.to_period('M')
 
-    #df['engagement'] = df['diggCount'] + df['shareCount'] + df['commentCount'] + df['collectCount']
+    # Drop exact video duplicates based on unique ID or URL
+    df = df.drop_duplicates(subset='webVideoUrl')  # or use 'video_id' if you have it
 
     top5_weekly = (
         df.sort_values(['week', 'playCount'], ascending=[True, False])
@@ -17,11 +17,4 @@ def get_top_viral_videos(file_path: str):
           .reset_index(drop=True)
     )
 
-    top5_monthly = (
-        df.sort_values(['month', 'playCount'], ascending=[True, False])
-          .groupby('month')
-          .head(5)
-          .reset_index(drop=True)
-    )
-
-    return top5_weekly, top5_monthly
+    return top5_weekly
