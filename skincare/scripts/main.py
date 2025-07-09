@@ -2,18 +2,15 @@
 #will help to keep the laptop alive
 
 #Change cache=cache back
+from skincare.analysis.trending_songs import trending_songs
 from skincare.scripts.data_connection import load_comments_posts_transcript,load_posts_transcripts, load_hashtags_posts
 from skincare.pipeline.preprocessing import filter_by_language, detect_language, filter_by_date
-from skincare.analysis.sentiment import run_sentiment_analysis_on_comments
-from skincare.analysis.trends import get_trending_keywords_with_tfidf
-from skincare.analysis.viralvideos import get_top_viral_videos
-from skincare.analysis.hashtags import get_weekly_hashtag_trends
-from skincare.analysis.ingredients import analyze_ingredient_sentiments, get_top_example_comments
-from skincare.pipeline.ingredientsBeiersdorf import load_ingredient_map
-from skincare.analysis.competitor_analysis import get_brand_sentiment_summary
-from skincare.analysis.viralMusic import get_top5_trending_music
-import pandas as pd
-
+#from skincare.analysis.sentiment import run_sentiment_analysis_on_comments
+#from skincare.analysis.trends import get_trending_keywords_with_tfidf
+#from skincare.analysis.viralvideos import get_top_viral_videos
+#from skincare.analysis.hashtags import build_weekly_normalized_table
+#from skincare.analysis.ingredients import analyze_ingredient_sentiments, get_top_example_comments
+#from skincare.pipeline.ingredientsBeiersdorf import load_ingredient_map
 
 def prepare_data(cache=False):
     # Hashtags unnested
@@ -52,9 +49,9 @@ run_sentiment_analysis_on_comments(
 
 #top5_weekly = get_top_viral_videos("//Users/ritushetkar/env_capstone/data/comments_posts_transcripts.csv")
 #top5_weekly.to_csv("data/top5_weekly.csv", index=False)
- 
+#top5_monthly.to_csv("data/top5_monthly.csv", index=False)
 
-#hashags_result_table = get_weekly_hashtag_trends('data/hashtags_posts.csv')
+#hashags_result_table = build_weekly_normalized_table('data/hashtags_posts.csv', min_posts=1)
 #hashags_result_table.to_csv("data/hashags_result_table.csv", index=False)
 
 #ingredient_map = load_ingredient_map("/Users/ritushetkar/Downloads/Ingredient Mapping.csv")
