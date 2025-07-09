@@ -54,7 +54,7 @@ def load_data():
     topics = pd.read_csv("data/dummy_topic.csv", parse_dates=["Timestamp"])
     weekly = pd.read_csv("data/top5_weekly.csv", parse_dates=["date"])
  
-    clusters = pd.read_csv("data/topic_clustering.csv")
+    clusters = pd.read_csv("/Users/ritushetkar/env_capstone/data/topic_summary.csv")
     hashtags=pd.read_csv("data/hashags_result_table.csv")
     ingredients = pd.read_csv("data/ingredients_results.csv")
     ingredients_example=pd.read_csv('data/ingredients_examplecomments.csv')
@@ -132,7 +132,7 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
     for idx, (_, row) in enumerate(df.iterrows()):
         col = cols[idx % 2]
         with col:
-            topic_name = row.get("NormName") or row.get("Name")
+            topic_name = row.get("Name") or row.get("Name")
             count = int(row["Count"])
             examples = row["Examples"][:max_quotes]
             percent = min(count / total_mentions, 1.0) * 100
@@ -217,7 +217,7 @@ def display_trends(df: pd.DataFrame):
     " or external events. Use these insights as directional indicators, not certainties.")
     st.markdown("")
     st.markdown("")
-    titles = ["Dame Un Grrr", "Morning routine", "Korean Skincare", "Glow-up"]
+    titles = ["dame Un Grrr", "morning routine", "korean skincare", "glow-up"]
     deltas = ["↑ +82%",     "↑ +28%",          "↑ +25%",           "↑ +34%"]
 
     cols = st.columns(4)
@@ -499,7 +499,7 @@ def display_home():
     st.markdown("")
     col1, col2, col3 = st.columns(3)
     col1.metric("Posts each month", "1.500")
-    col2.metric("Comments each month", "8.500")
+    col2.metric("Comments (EN and DE) each month", "7000")
     col3.metric("Updated", "Weekly") 
     st.divider()
     st.markdown("### 🧑‍💻 How does GenZ talk about skincare?")
