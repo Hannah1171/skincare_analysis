@@ -2,15 +2,19 @@
 #will help to keep the laptop alive
 
 #Change cache=cache back
+import pandas as pd
 from skincare.analysis.trending_songs import trending_songs
 from skincare.scripts.data_connection import load_comments_posts_transcript,load_posts_transcripts, load_hashtags_posts
 from skincare.pipeline.preprocessing import filter_by_language, detect_language, filter_by_date
-#from skincare.analysis.sentiment import run_sentiment_analysis_on_comments
-#from skincare.analysis.trends import get_trending_keywords_with_tfidf
-#from skincare.analysis.viralvideos import get_top_viral_videos
-#from skincare.analysis.hashtags import build_weekly_normalized_table
-#from skincare.analysis.ingredients import analyze_ingredient_sentiments, get_top_example_comments
-#from skincare.pipeline.ingredientsBeiersdorf import load_ingredient_map
+from skincare.analysis.sentiment import run_sentiment_analysis_on_comments
+from skincare.analysis.trends import get_trending_keywords_with_tfidf
+from skincare.analysis.viralvideos import get_top_viral_videos
+from skincare.analysis.hashtags import build_weekly_normalized_table
+from skincare.analysis.ingredients import analyze_ingredient_sentiments, get_top_example_comments
+from skincare.pipeline.ingredientsBeiersdorf import load_ingredient_map
+from skincare.analysis.competitor_analysis import get_brand_sentiment_summary
+from skincare.analysis.viralMusic import get_top5_trending_music
+
 
 def prepare_data(cache=False):
     # Hashtags unnested
