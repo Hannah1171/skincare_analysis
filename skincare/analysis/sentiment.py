@@ -3,7 +3,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 def run_sentiment_analysis_on_comments(
-    input_path: str,
+    df: pd.DataFrame,
     output_path: str,
     text_col: str = "comment",
     sentiment_col: str = "sentiment",
@@ -12,7 +12,6 @@ def run_sentiment_analysis_on_comments(
     batch_size: int = 32,
     max_length: int = 512
 ) -> pd.DataFrame:
-    df = pd.read_csv(input_path)
     texts = df[text_col].fillna("").astype(str).tolist()
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
