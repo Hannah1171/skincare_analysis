@@ -32,6 +32,9 @@ def load_raw_posts() -> pd.DataFrame:
 def load_raw_transcripts() -> pd.DataFrame:
     return run_query("transcripts.sql")
 
+def load_raw_profiles() -> pd.DataFrame:
+    return run_query("profiles.sql")
+
 # ---------- Merged Loaders ----------
 def load_comments_posts_transcript(cache: bool = True) -> pd.DataFrame:
     output_path = CACHE_PATH / "comments_posts_transcripts_raw.csv"
@@ -88,3 +91,20 @@ def load_posts_transcripts(cache: bool = True) -> pd.DataFrame:
     print(f"Merged file saved to: {output_path}")
 
     return df
+
+def load_posts_profiles(cache: bool = True) -> pd.DataFrame:
+    output_path = CACHE_PATH / "posts_profiles.csv"
+
+    if cache and output_path.exists():
+        print(f"Loaded cached merged file: {output_path}")
+        return pd.read_csv(output_path)
+
+    print("Fetching fresh data from BigQuery and merging...")
+    profiles = load_raw_profiles()
+
+    CACHE_PATH.mkdir(parents=True, exist_ok=True)
+    profiles.to_csv(output_path, index=False)
+    print(f"Merged file saved to: {output_path}")
+
+    return profiles
+
