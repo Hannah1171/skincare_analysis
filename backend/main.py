@@ -3,23 +3,23 @@
 
 #Change cache=cache back
 import pandas as pd
-from skincare.analysis.trending_songs import trending_songs
+from backend.models.trending_songs import trending_songs
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-from skincare.analysis.trends import get_trends
-from skincare.scripts.data_connection import load_comments_posts_transcript, load_posts_transcripts, load_hashtags_posts
-from skincare.pipeline.preprocessing import filter_by_language, detect_language, filter_by_date, filter_by_recent_days
-from skincare.analysis.sentiment import run_sentiment_analysis_on_comments
-from skincare.analysis.trends_tdif import get_trending_keywords_with_tfidf
-from skincare.analysis.viralvideos import get_top_viral_videos
-from skincare.analysis.hashtags import build_weekly_normalized_table
-from skincare.analysis.ingredients import analyze_ingredient_sentiments, get_top_example_comments
-from skincare.pipeline.ingredientsBeiersdorf import load_ingredient_map
-from skincare.analysis.competitor_analysis import get_brand_sentiment_summary
-from skincare.analysis.viralMusic import get_top5_trending_music
+from backend.models.trends import get_trends
+from data_source.data_connection import load_comments_posts_transcript, load_posts_transcripts, load_hashtags_posts
+from backend.preprocessing.preprocessing import filter_by_language, detect_language, filter_by_date, filter_by_recent_days
+from backend.models.sentiment import run_sentiment_analysis_on_comments
+from backend.models.trends_tdif import get_trending_keywords_with_tfidf
+from backend.models.viralvideos import get_top_viral_videos
+from backend.models.hashtags import build_weekly_normalized_table
+from backend.models.ingredients import analyze_ingredient_sentiments, get_top_example_comments
+from backend.preprocessing.ingredientsBeiersdorf import load_ingredient_map
+from backend.models.competitor_analysis import get_brand_sentiment_summary
+from backend.models.viralMusic import get_top5_trending_music
 
-from skincare.analysis.topics import generate_hierarchical_topics, run_topic_model
+from backend.models.topics import generate_hierarchical_topics, run_topic_model
 import pandas as pd
 
 def prepare_data(cache=True):

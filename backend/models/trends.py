@@ -1,6 +1,6 @@
 import pandas as pd
 from skincare.pipeline.preprocessing import get_stopwords, clean_text
-from skincare.analysis.topics import (
+from skincare.models.topics import (
     build_topic_model,
     get_filtered_keywords,
     generate_topic_label,
