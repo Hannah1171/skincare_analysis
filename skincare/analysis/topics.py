@@ -19,7 +19,7 @@ from gensim.corpora import Dictionary
 llm = pipeline("text2text-generation", model="google/flan-t5-large")
 
 # Sentence embedding model for label deduplication
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+embedding_model = SentenceTransformer("all-mpnet-base-v2")  #('all-MiniLM-L6-v2')
 
 # Normalize topic labels for deduplication
 def normalize_label(label: str) -> str:
@@ -179,7 +179,7 @@ def run_topic_model(
     df["cleaned_text"] = df[text_col].apply(lambda x: clean_text(x, stopwords=stopwords))
 
     # Filter and deduplicate
-    df_filtered = df[df["cleaned_text"].str.split().str.len() > 5]
+    df_filtered = df[df["cleaned_text"].str.split().str.len() > 2]
     df_unique = df_filtered.drop_duplicates(subset=["cleaned_text"])
 
     # Extract cleaned texts
