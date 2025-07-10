@@ -8,6 +8,7 @@ SELECT
   authorMeta.signature AS author_signature,
   authorMeta.fans AS author_fans,
   videoMeta.duration AS video_duration,
+  webVideoUrl,
   diggCount,
   shareCount,
   playCount,
