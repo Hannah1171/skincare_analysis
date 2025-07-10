@@ -1,7 +1,7 @@
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-from skincare.scripts.data_connection import load_comments_posts_transcript, load_posts_transcripts, load_hashtags_posts
+from skincare.scripts.data_connection import load_comments_posts_transcript, load_posts_transcripts, load_hashtags_posts, load_posts_profiles
 from skincare.pipeline.preprocessing import filter_by_language, detect_language, filter_by_date, filter_by_recent_days
 from skincare.analysis.sentiment import run_sentiment_analysis_on_comments
 from skincare.analysis.trends import get_trending_keywords_with_tfidf
@@ -28,10 +28,12 @@ def prepare_data(cache=True):
 if __name__ == "__main__":
     
     #prepare_data(cache=False)
-    df_comments = pd.read_csv('data/comments_sentiment_posts_transcripts.csv')
-    df_comments_recent = filter_by_recent_days(df=df_comments, days=30)
-    model, topic_summary, df_named = run_topic_model(df=df_comments_recent)
+    #df_comments = pd.read_csv('data/comments_sentiment_posts_transcripts.csv')
+    #df_comments_recent = filter_by_recent_days(df=df_comments, days=30)
+    #model, topic_summary, df_named = run_topic_model(df=df_comments_recent)
 
-    topic_summary.to_csv("data/topic_summary.csv", index=False)
-    df_named.to_csv("data/df_named.csv", index=False)
-    print(df_comments_recent['text'].nunique())
+    #topic_summary.to_csv("data/topic_summary.csv", index=False)
+    #df_named.to_csv("data/df_named.csv", index=False)
+    #print(df_comments_recent['text'].nunique())
+
+    df = load_posts_profiles()
