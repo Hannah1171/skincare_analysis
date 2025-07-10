@@ -37,14 +37,8 @@ def get_trending_keywords_with_tfidf(filename, number_of_days=28):
     recent_posts = filter_by_recent_days(df=df, days=number_of_days)
 
     # Add week column
-    #recent_posts["wee_date"] = pd.to_datetime(recent_posts["createTimeISO"]).dt.to_period("W").dt.to_timestamp()
-    #recent_posts["week_number"] = pd.to_datetime(recent_posts["createTimeISO"]).dt.to_period("W")
-
-
-  
-    recent_posts["week"] = recent_posts["createTimeISO"].dt.to_period("W")
-    recent_posts["week_start"] = recent_posts["week"].dt.to_timestamp()
-
+    recent_posts["week_date"] = pd.to_datetime(recent_posts["createTimeISO"]).dt.to_period("W").dt.to_timestamp()
+    recent_posts["week_number"] = pd.to_datetime(recent_posts["createTimeISO"]).dt.to_period("W")
 
     all_weekly_results = []
 
