@@ -179,7 +179,7 @@ def run_topic_model(
     df["cleaned_text"] = df[text_col].apply(lambda x: clean_text(x, stopwords=stopwords))
 
     # Filter and deduplicate
-    df_filtered = df[df["cleaned_text"].str.split().str.len() > 5]
+    df_filtered = df[df["cleaned_text"].str.split().str.len() > 2]
     df_unique = df_filtered.drop_duplicates(subset=["cleaned_text"])
 
     # Extract cleaned texts
