@@ -85,7 +85,7 @@ if __name__ == "__main__":
     #hashags_result_table = build_weekly_normalized_table('data/hashtags_posts.csv', min_posts=1)
     #hashags_result_table.to_csv("data/hashags_result_table.csv", index=False)
 
-    #ingredient_map = load_ingredient_map("/Users/ritushetkar/Downloads/Ingredient Mapping.csv")
+    #ingredient_map = load_ingredient_map("backend/data_source/Ingredient_Mapping.csv")
 
     #Process Ingredient Sentiments
     #ingredient_df, exploded_ingredient_df = analyze_ingredient_sentiments(
