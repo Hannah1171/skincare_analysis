@@ -39,6 +39,7 @@ def prepare_data(cache=True):
     df_comments = filter_by_language(df=df_comments, lang_col="comment_lang")
     df_comments.to_csv("data/comments_posts_transcripts.csv", index=False)
 
+
 if __name__ == "__main__":
     
     #prepare_data(cache=False)
