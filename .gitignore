@@ -1,5 +1,5 @@
 # csc files are too big
-data/*.csv
+data/**/*.csv
 
 
 # Byte-compiled / optimized / DLL files
