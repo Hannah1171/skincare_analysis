@@ -1,5 +1,5 @@
 # Imports
-from skincare.pipeline.preprocessing import get_stopwords, clean_text
+from backend.preprocessing.preprocessing import get_stopwords, clean_text
 from bertopic import BERTopic
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import CountVectorizer

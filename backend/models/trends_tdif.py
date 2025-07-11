@@ -1,6 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
-from skincare.pipeline.preprocessing import preprocess_text_column, filter_by_recent_days
+from backend.preprocessing.preprocessing import preprocess_text_column, filter_by_recent_days
 from collections import Counter
 
 

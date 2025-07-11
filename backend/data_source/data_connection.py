@@ -1,11 +1,10 @@
-import os
 from pathlib import Path
 import pandas as pd
 from google.cloud import bigquery
 
 PROJECT_ID = "capstone-ai-dev"
-SQL_PATH = Path(__file__).resolve().parents[2] / "sql"
-CACHE_PATH = Path(__file__).resolve().parents[2] / "data"
+SQL_PATH = Path(__file__).resolve().parents[2] / "backend" / "data_source" / "sql"
+CACHE_PATH = Path(__file__).resolve().parents[2] / "data" / "raw_data"
 
 client = bigquery.Client(project=PROJECT_ID)
 
