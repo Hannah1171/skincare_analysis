@@ -34,7 +34,7 @@ def main():
 
     data = load_data()
     (
-        keywords, topics_df, weekly, clusters, hashtags, ingredients_df,
+        weekly, clusters, hashtags, ingredients_df,
         ingredients_example, success_general, success_author_fans,
         success_hour, success_duration, success_wordcount,
         success_isad, brands_df, brands_examples, music

@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+from backend.models.successful_posts_drivers import successful_posts_drivers
+from backend.models.hashtags import build_weekly_normalized_table
 from backend.models.trends import get_trends
 from backend.data_source.data_connection import load_comments_posts_transcript, load_posts_transcripts, load_hashtags_posts,load_posts_profiles
 from backend.preprocessing.preprocessing import filter_by_language, detect_language, filter_by_date, filter_by_recent_days
@@ -38,14 +40,8 @@ def prepare_data(cache=True):
 
 
 if __name__ == "__main__":
-
+    """ 
     prepare_data()
-
-
-
-
-
-
 
  # --- Data Preparation ---
     prepare_data(cache=False)
@@ -59,12 +55,49 @@ if __name__ == "__main__":
 
 
 
-    # --- Topic Modeling ---
-    model, topic_summary, df_named = run_topic_model(df=df_comments_recent)
-    topic_summary.to_csv("data/topic_summary.csv", index=False)
-    df_named.to_csv("data/df_named.csv", index=False)
-    print(df_comments_recent['text'].nunique())
 
+    # Topic Modeling
+    model, topic_summary, df_named = run_topic_model(df=df_comments_recent_30)
+    topic_summary.to_csv("data/dashboard/topic_summary.csv", index=False)
+
+    # Viral Videos
+    top5_weekly = get_top_viral_videos("data/filtered_data/comments_posts_transcripts.csv")
+    top5_weekly.to_csv("data/dashboard/top5_weekly.csv", index=False)
+
+    # Hashtag Analysis
+    hashags_result_table = build_weekly_normalized_table('data/filtered_data/hashtags_posts.csv', min_posts=1)
+    hashags_result_table.to_csv("data/dashboard/hashags_result_table.csv", index=False)
+
+    # Ingredient Sentiment 
+    ingredient_map = load_ingredient_map("data/static_data/ingredient_mapping.csv") 
+    ingredient_df, exploded_ingredient_df = analyze_ingredient_sentiments(
+        comment_file="data/filtered_data/comments_posts_transcripts.csv",
+        ingredient_map=ingredient_map
+    )
+    ingredient_df.to_csv("data/dashboard/ingredients_results.csv", index=False)
+
+    # Example Comments for Ingredients
+    example_comments = get_top_example_comments(exploded_ingredient_df)
+    example_comments.to_csv("data/dashboard/ingredients_examplecomments.csv", index=False)
+
+    # Brand Sentiment
+    brands_df, brands_examples_df = get_brand_sentiment_summary("data/filtered_data/comments_posts_transcripts.csv")
+    brands_df.to_csv("data/dashboard/brand_sentiment_summary.csv", index=False)
+    brands_examples_df.to_csv("data/dashboard/brand_sentiment_summary_examples.csv", index=False)
+
+    # Music Trends
+    music = pd.read_csv("/Users/ritushetkar/Downloads/musicViral_Combined.csv") #ADJUST
+    viralMusic = get_top5_trending_music(music)
+    viralMusic.to_csv("data/dashboard/top5_viralMusic.csv", index=False)
+ """
+    # Successful post drivrs
+    successful_posts_drivers(input_path= "data/filtered_data/posts_transcripts.csv")
+
+
+
+
+
+"""
     # --- Trend Detection ---
     top_df, topics, trends = get_trends(df=posts, min_history=5)
     top_df.to_csv("data/trend_top.csv")
@@ -74,35 +107,4 @@ if __name__ == "__main__":
 
     trend_tdidf = get_trending_keywords_with_tfidf(posts)
     trend_tdidf.to_csv("data/trends_tdidf")
-
-    # --- Hashtag Analysis ---
-    hashags_result_table = build_weekly_normalized_table('data/hashtags_posts.csv', min_posts=1)
-    hashags_result_table.to_csv("data/hashags_result_table.csv", index=False)
-
-    # --- Viral Videos ---
-    top5_weekly = get_top_viral_videos("//Users/ritushetkar/env_capstone/data/comments_posts_transcripts.csv")
-    top5_weekly.to_csv("data/top5_weekly.csv", index=False)
-    top5_monthly.to_csv("data/top5_monthly.csv", index=False)
-
-    # --- Ingredient Sentiment ---
-    ingredient_map = load_ingredient_map("/Users/ritushetkar/Downloads/Ingredient Mapping.csv")
-    ingredient_df, exploded_ingredient_df = analyze_ingredient_sentiments(
-        comment_file="data/comments_posts_transcripts.csv",
-        ingredient_map=ingredient_map
-    )
-    ingredient_df.to_csv("data/ingredients_results.csv", index=False)
-
-    # --- Example Comments for Ingredients ---
-    example_comments = get_top_example_comments(exploded_ingredient_df)
-    example_comments.to_csv("data/ingredients_examplecomments.csv", index=False)
-
-    # --- Brand Sentiment ---
-    brands_df, brands_examples_df = get_brand_sentiment_summary("/Users/ritushetkar/env_capstone/data/comments_posts_transcripts.csv")
-    brands_df.to_csv("data/brand_sentiment_summary.csv", index=False)
-    brands_examples_df.to_csv("data/brand_sentiment_summary_examples.csv", index=False)
-
-    # --- Music Trends ---
-    music = pd.read_csv("/Users/ritushetkar/Downloads/musicViral_Combined.csv")
-    viralMusic = get_top5_trending_music(music)
-    viralMusic.to_csv("data/top5_viralMusic.csv", index=False)
  """

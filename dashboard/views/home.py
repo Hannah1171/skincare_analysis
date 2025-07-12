@@ -1,7 +1,7 @@
 import streamlit as st
 
 def display_home():
-    st.image("dashboard/logo.png", use_container_width=True)
+    st.image("data/static_data/logo.png", use_container_width=True)
     st.title("✨ Welcome to the Skincare Dashboard")
     st.badge("DISCLAIMER", color='orange')
     st.markdown("The data used for the dashboard consists of the last 9 months and was collected by scraping TikTok using the following hashtags #skincare, #skincareroutine, #hautpflege, #hautpflegeroutine.")
