@@ -41,22 +41,16 @@ def prepare_data(cache=True):
 
 if __name__ == "__main__":
     """ 
-    prepare_data()
 
- # --- Data Preparation ---
+    # Pull data
     prepare_data(cache=False)
-    df_comments = pd.read_csv('data/comments_sentiment_posts_transcripts.csv')
-    posts = pd.read_csv('data/posts_transcripts.csv')
-    posts = filter_by_recent_days(df=posts, days=90)
 
-    # --- Sentiment Analysis ---
+    # Sentiment Analysis
+    df_comments = pd.read_csv('data/filtered_data/comments_posts_transcripts.csv')
     df_comments = run_sentiment_analysis_on_comments(df=df_comments, output_path='data/filtered_data/comments_sentiment.csv', batch_size=64)
-    df_comments_recent_30 = filter_by_recent_days(df=df_comments, days=30)
-
-
-
 
     # Topic Modeling
+    df_comments_recent_30 = filter_by_recent_days(df=df_comments, days=30)
     model, topic_summary, df_named = run_topic_model(df=df_comments_recent_30)
     topic_summary.to_csv("data/dashboard/topic_summary.csv", index=False)
 
@@ -89,22 +83,22 @@ if __name__ == "__main__":
     music = pd.read_csv("/Users/ritushetkar/Downloads/musicViral_Combined.csv") #ADJUST
     viralMusic = get_top5_trending_music(music)
     viralMusic.to_csv("data/dashboard/top5_viralMusic.csv", index=False)
- """
+
     # Successful post drivrs
     successful_posts_drivers(input_path= "data/filtered_data/posts_transcripts.csv")
 
 
-
-
-
-"""
-    # --- Trend Detection ---
-    top_df, topics, trends = get_trends(df=posts, min_history=5)
-    top_df.to_csv("data/trend_top.csv")
-    trends.to_csv("data/trends.csv")
+    # Trend Detection 
+    df_posts = pd.read_csv('data/filtered_data/posts_transcripts.csv')
+    df_posts_recent = filter_by_recent_days(df=df_posts, days=60)
+    top_df, topics, trends = get_trends(df=df_posts, min_history=4)
+    top_df.to_csv("data/dashboard/trend_top.csv")
+    trends.to_csv("data/dashboard/trends.csv")
     print(topics)
     print(trends)
-
-    trend_tdidf = get_trending_keywords_with_tfidf(posts)
-    trend_tdidf.to_csv("data/trends_tdidf")
  """
+    
+    df_posts = pd.read_csv('data/filtered_data/posts_transcripts.csv')
+    df_posts_recent = filter_by_recent_days(df=df_posts, days=60)
+    trend_tdidf = get_trending_keywords_with_tfidf(df_posts_recent)
+    trend_tdidf.to_csv("data/dashboard/trends_tdidf.csv")

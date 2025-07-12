@@ -88,7 +88,7 @@ def filter_by_recent_days(df, date_col="createTimeISO", days=30):
 
 def preprocess_text_column(df, text_col="text_comment", new_col="clean_text"):
     """Apply full text cleaning pipeline to a single column."""
-    df[new_col] = df[text_col].apply(clean_text_keep_emojis)
+    df[new_col] = df[text_col].apply(clean_text)
     return df
 
 def detect_language(df, text_col="text_comment", lang_col="lang"):

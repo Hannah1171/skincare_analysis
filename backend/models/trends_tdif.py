@@ -41,7 +41,8 @@ def get_trending_keywords_with_tfidf(df, number_of_days=28):
 
     all_weekly_results = []
 
-    for week, group in recent_posts.groupby("week"):
+    for week, group in recent_posts.groupby("week_number"):
+        group["transcribed_text"] = group["transcribed_text"].astype(str)
         df_filtered = preprocess_text_column(df=group, text_col='transcribed_text', new_col='transcribed_text')
         texts = df_filtered["transcribed_text"].dropna().astype(str).tolist()
 
