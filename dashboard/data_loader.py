@@ -12,26 +12,26 @@ NEGATIVE_FILL = "rgba(217, 108, 124, 0.23)"
 
 
 def load_data():
-    weekly = pd.read_csv("data/top5_weekly.csv", parse_dates=["date"])
+    weekly = pd.read_csv("data/dashboard/top5_weekly.csv", parse_dates=["date"])
 
-    clusters = pd.read_csv("data/topic_summary.csv")
-    hashtags = pd.read_csv("data/hashags_result_table.csv")
-    ingredients = pd.read_csv("data/ingredients_results.csv")
-    ingredients_example = pd.read_csv("data/ingredients_examplecomments.csv")
+    clusters = pd.read_csv("data/dashboard/topic_summary.csv")
+    hashtags = pd.read_csv("data/dashboard/hashags_result_table.csv")
+    ingredients = pd.read_csv("data/dashboard/ingredients_results.csv")
+    ingredients_example = pd.read_csv("data/dashboard/ingredients_examplecomments.csv")
 
-    successful_post_general = pd.read_csv("data/successful_post_range.csv")
-    successful_post_author_fans = pd.read_csv("data/shap_vs_author_fans.csv")
-    successful_post_hour_posting = pd.read_csv("data/shap_vs_hour_posting.csv")
-    successful_post_video_duration = pd.read_csv("data/shap_vs_video_duration.csv")
-    successful_post_word_count = pd.read_csv("data/shap_vs_word_count.csv")
-    successful_post_is_ad = pd.read_csv("data/shap_vs_isAd.csv")
+    successful_post_general = pd.read_csv("data/dashboard/successful_post_range.csv")
+    successful_post_author_fans = pd.read_csv("data/dashboard/shap_vs_author_fans.csv")
+    successful_post_hour_posting = pd.read_csv("data/dashboard/shap_vs_hour_posting.csv")
+    successful_post_video_duration = pd.read_csv("data/dashboard/shap_vs_video_duration.csv")
+    successful_post_word_count = pd.read_csv("data/dashboard/shap_vs_word_count.csv")
+    successful_post_is_ad = pd.read_csv("data/dashboard/shap_vs_isAd.csv")
 
-    brands = pd.read_csv("data/brand_sentiment_summary.csv")
-    brands_examples = pd.read_csv("data/brand_sentiment_summary_examples.csv")
+    brands = pd.read_csv("data/dashboard/brand_sentiment_summary.csv")
+    brands_examples = pd.read_csv("data/dashboard/brand_sentiment_summary_examples.csv")
 
     weekly["week"] = weekly["date"].dt.isocalendar().week
 
-    music = pd.read_csv("data/top5_viralMusic.csv")
+    music = pd.read_csv("data/dashboard/top5_viralMusic.csv")
 
     return (
         weekly, clusters, hashtags, ingredients,
