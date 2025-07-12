@@ -46,23 +46,18 @@ if __name__ == "__main__":
 
 
 
-    
-"""     # --- Data Preparation ---
+
+ # --- Data Preparation ---
     prepare_data(cache=False)
     df_comments = pd.read_csv('data/comments_sentiment_posts_transcripts.csv')
-    df_comments_recent = filter_by_recent_days(df=df_comments, days=30)
     posts = pd.read_csv('data/posts_transcripts.csv')
     posts = filter_by_recent_days(df=posts, days=90)
 
     # --- Sentiment Analysis ---
-    df_comments_recent = run_sentiment_analysis_on_comments(df=df_comments_recent, output_path='data/comments_sentiment.csv')
-    df_comments_recent_30 = filter_by_recent_days(df=df_comments_recent, days=30)
+    df_comments = run_sentiment_analysis_on_comments(df=df_comments, output_path='data/filtered_data/comments_sentiment.csv', batch_size=64)
+    df_comments_recent_30 = filter_by_recent_days(df=df_comments, days=30)
 
-    run_sentiment_analysis_on_comments(
-        input_path="data/comments_posts_transcripts.csv",
-        output_path="data/comments_posts_transcripts.csv",
-        batch_size=64
-    )
+
 
     # --- Topic Modeling ---
     model, topic_summary, df_named = run_topic_model(df=df_comments_recent)
