@@ -1,4 +1,6 @@
 import pandas as pd
+from datetime import datetime, timedelta
+
 
 def get_top_viral_videos(file_path: str):
     df = pd.read_csv(file_path)
@@ -9,12 +11,18 @@ def get_top_viral_videos(file_path: str):
 
     # Drop exact video duplicates based on unique ID or URL
     df = df.drop_duplicates(subset='webVideoUrl')  # or use 'video_id' if you have it
+    # Limit to last 7 days only
+    last_7_days = datetime.utcnow().date() - timedelta(days=7)
+    df_recent = df[df['date'].dt.date >= last_7_days]
 
     top5_weekly = (
-        df.sort_values(['week', 'playCount'], ascending=[True, False])
-          .groupby('week')
-          .head(5)
-          .reset_index(drop=True)
+      df_recent.sort_values('playCount', ascending=False)
+             .drop_duplicates('webVideoUrl')
+             .head(5)
+             .reset_index(drop=True)
     )
 
     return top5_weekly
+
+
+

@@ -107,3 +107,22 @@ def load_posts_profiles(cache: bool = True) -> pd.DataFrame:
 
     return profiles
 
+def load_raw_music() -> pd.DataFrame:
+    return run_query("music.sql")
+
+def load_music(cache: bool = True) -> pd.DataFrame:
+    output_path = CACHE_PATH / "music_raw.csv"
+
+    if cache and output_path.exists():
+        print(f"Loaded cached music data: {output_path}")
+        return pd.read_csv(output_path)
+
+    print("Fetching fresh music data from BigQuery...")
+    df = load_raw_music()
+
+    CACHE_PATH.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_path, index=False)
+    print(f"Music data saved to: {output_path}")
+
+    return df
+

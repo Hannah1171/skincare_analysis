@@ -16,7 +16,7 @@ def display_trends(df: pd.DataFrame):
     " or external events. Use these insights as directional indicators, not certainties.")
     st.markdown("")
     st.markdown("")
-    titles = ["dame Un Grrr", "morning routine", "korean skincare", "glow-up"]
+    titles = ["dame Un Grrr", "morning routine", "korean skincare", "glow-up"] # ADJUST HERE 
     deltas = ["↑ +82%",     "↑ +28%",          "↑ +25%",           "↑ +34%"]
 
     cols = st.columns(4)
@@ -46,6 +46,7 @@ def display_hashtag_leaderboard(df: pd.DataFrame):
     st.markdown("")
     exclude_tags = ["skincare", "skincareroutine", "hautpflege", "hautpflegeroutine"]
     df = df[~df["hashtag_name"].str.lower().isin(exclude_tags)]
+
     df_sorted = df.sort_values(by="this_week_share", ascending=False).head(10).reset_index(drop=True)
 
     def render_row(i, row):
