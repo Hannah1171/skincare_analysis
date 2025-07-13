@@ -271,7 +271,7 @@ def regression_model(df, X_combined, additional_cols_final, vectorizer, addition
 
 
 def get_shap_values(shap_values, df_test_orig, test_idx):
-    top_features = ["author_fans", "video_duration", "word_count", "isAd"]
+    top_features = ["author_fans", "video_duration", "word_count", "isAd"] # ADJUST IF NEEDED 
 
     for feature in top_features:
         # Get raw feature values from test set aligned with SHAP values

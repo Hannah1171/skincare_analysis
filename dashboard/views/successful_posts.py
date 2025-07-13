@@ -14,7 +14,7 @@ def display_successful_post_insights(general, fans, hour, duration, wordcount, i
         "Length of Video",
         "Time of Posting",
         "Number of Followers"
-    ]
+    ] 
 
     st.subheader("Key drivers of post visibility")
     fig = go.Figure(go.Bar(
