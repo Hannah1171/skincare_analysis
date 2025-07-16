@@ -33,10 +33,10 @@ def successful_posts_drivers(input_path: str):
     df = get_data(df = df)
     df, df_hashtag_features =  prepare_for_model(df = df)
     df_clean, X_combined, additional_cols_final, vectorizer, additional_data_scaled, scaler = combine_features(df = df, df_hashtag_features=df_hashtag_features)
-    relevant_features, shap_values, df_test_orig, test_idx = regression_model(df=df_clean, X_combined=X_combined, additional_cols_final=additional_cols_final,  vectorizer=vectorizer, additional_data_scaled=additional_data_scaled, scaler=scaler )
+    relevant_features, shap_values, df_test_orig, test_idx, X_test_df = regression_model(df=df_clean, X_combined=X_combined, additional_cols_final=additional_cols_final,  vectorizer=vectorizer, additional_data_scaled=additional_data_scaled, scaler=scaler )
     get_shap_values(shap_values=shap_values, df_test_orig=df_test_orig, test_idx=test_idx)
     classification_model_is_viral(df=df, X_combined=X_combined)
-    optimal_feature_range(shap_values, df_test_orig, relevant_features)
+    optimal_feature_range(shap_values, df_test_orig, relevant_features,X_test_df)
     
 def get_data(df:pd.DataFrame):
     df['createTimeISO'] = (
@@ -270,12 +270,12 @@ def regression_model(df, X_combined, additional_cols_final, vectorizer, addition
 
     relevant_features = pd.DataFrame(relevant)
 
-    return relevant_features, shap_values, df_test_orig, test_idx
+    return relevant_features, shap_values, df_test_orig, test_idx, X_test_df
 
 
 
 def get_shap_values(shap_values, df_test_orig, test_idx):
-    top_features = ["author_fans", "video_duration", "word_count", "isAd"] # ADJUST IF NEEDED 
+    top_features = ["author_fans", "video_duration", "word_count", "isAd","hour_posting"] # ADJUST IF NEEDED 
 
     for feature in top_features:
         # Get raw feature values from test set aligned with SHAP values
@@ -366,29 +366,25 @@ def classification_model_is_viral(df, X_combined):
     print("F1 score:", f1_score(y_test, y_pred))
     print("AUC:", roc_auc_score(y_test, y_proba))
 
-def optimal_feature_range(shap_values, df_test_orig, relevant_features):
+def optimal_feature_range(shap_values, df_test_orig, relevant_features, X_test_df):
     top_features = ["author_fans", "video_duration", "word_count", "isAd", "hour_posting"]
 
-    # Filter relevant features first
-    relevant_features = relevant_features[relevant_features["feature"].isin(top_features)].reset_index(drop=True)
-
     optimal_ranges = []
+    mean_shap_vals = []
 
-    for feat in relevant_features["feature"]:
+    for feat in top_features:
         df_feat = pd.DataFrame({
             "feature_val": df_test_orig[feat].values,
-            "shap_val": shap_values[:, feat].values
+            "shap_val": shap_values.values[:, X_test_df.columns.get_loc(feat)]
         })
 
         # Remove outliers
         p1, p99 = np.percentile(df_feat["feature_val"], [1, 99])
         df_feat = df_feat[(df_feat["feature_val"] >= p1) & (df_feat["feature_val"] <= p99)]
 
-        # Bin + compute mean SHAP
         bins = pd.cut(df_feat["feature_val"], bins=100)
-        summary = df_feat.groupby(bins)["shap_val"].mean()
+        summary = df_feat.groupby(bins, observed=False)["shap_val"].mean()
 
-        # Get bin with max SHAP value
         if not summary.empty:
             best_bin = summary.idxmax()
             best_range = f"{best_bin.left:.1f}–{best_bin.right:.1f}"
@@ -396,12 +392,18 @@ def optimal_feature_range(shap_values, df_test_orig, relevant_features):
             best_range = "n/a"
 
         optimal_ranges.append(best_range)
+        mean_abs_shap = np.abs(shap_values.values[:, X_test_df.columns.get_loc(feat)]).mean()
+        mean_shap_vals.append(mean_abs_shap)
 
-    # Add the optimal ranges to the *filtered* relevant features
-    relevant_features["optimal_value_range"] = optimal_ranges
+    # Combine into DataFrame
+    relevant_features = pd.DataFrame({
+        "feature": top_features,
+        "mean_abs_shap": mean_shap_vals,
+        "optimal_value_range": optimal_ranges
+    })
 
-    # Save to CSV
     relevant_features.to_csv("data/dashboard/successful_post_range.csv", index=False)
+    return relevant_features
 
 
 def combine_text(row, include_description=True):

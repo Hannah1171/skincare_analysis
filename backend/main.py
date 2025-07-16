@@ -53,7 +53,7 @@ if __name__ == "__main__":
     # Sentiment Analysis
     df_comments = pd.read_csv('data/filtered_data/comments_posts_transcripts.csv')
     df_comments = run_sentiment_analysis_on_comments(df=df_comments, output_path='data/filtered_data/comments_sentiment.csv', batch_size=64)
-        """ 
+     
     # Topic Modeling
     df_comments = pd.read_csv('data/filtered_data/comments_sentiment.csv')
     # 30-day window
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     df_comments_recent_90 = filter_by_recent_days(df=df_comments, days=90)
     model_90, topic_summary_90, df_named_90 = run_topic_model(df=df_comments_recent_90)
     topic_summary_90.to_csv("data/dashboard/topic_summary_90.csv", index=False)
-    """ 
+    
     # Viral Videos
     top5_weekly = get_top_viral_videos("data/filtered_data/comments_posts_transcripts.csv")
     top5_weekly.to_csv("data/dashboard/top5_weekly.csv", index=False)
@@ -97,10 +97,10 @@ if __name__ == "__main__":
     music = pd.read_csv("data/filtered_data/music.csv") 
     viralMusic = get_top5_trending_music(music)
     viralMusic.to_csv("data/dashboard/top5_viralMusic.csv", index=False)
-  
+    """ 
     # Successful post drivrs
     successful_posts_drivers(input_path= "data/filtered_data/posts_transcripts.csv") 
-
+    """ 
     # Trend Detection 
     df_posts = pd.read_csv('data/filtered_data/posts_transcripts.csv')
     df_posts_recent = filter_by_recent_days(df=df_posts, days=40)
