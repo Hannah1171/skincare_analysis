@@ -3,7 +3,7 @@ import pandas as pd
 from backend.models.successful_posts_drivers import successful_posts_drivers
 from backend.models.trends import get_trends
 from backend.data_source.data_connection import load_comments_posts_transcript, load_posts_transcripts, load_hashtags_posts,load_posts_profiles, load_music
-from backend.preprocessing.preprocessing import filter_by_language, detect_language, filter_by_date, filter_by_recent_days
+from backend.preprocessing.preprocessing import filter_by_language, detect_language, filter_by_date, filter_by_recent_days, filter_past_30_days_2_weeks_ago
 from backend.models.sentiment import run_sentiment_analysis_on_comments
 from backend.models.trends_tdif import get_trending_keywords_with_tfidf
 from backend.models.viralvideos import get_top_viral_videos
@@ -46,27 +46,28 @@ def prepare_data(cache=True):
 
 
 if __name__ == "__main__":
-   
-    """" 
+    """ 
     # Pull data
     prepare_data(cache=False)
   
-   
     # Sentiment Analysis
     df_comments = pd.read_csv('data/filtered_data/comments_posts_transcripts.csv')
     df_comments = run_sentiment_analysis_on_comments(df=df_comments, output_path='data/filtered_data/comments_sentiment.csv', batch_size=64)
-    
+        """ 
     # Topic Modeling
-    os.makedirs("data/dashboard", exist_ok=True)
-    df_comments=pd.read_csv('data/filtered_data/comments_sentiment.csv')
+    df_comments = pd.read_csv('data/filtered_data/comments_sentiment.csv')
+    # 30-day window
     df_comments_recent_30 = filter_by_recent_days(df=df_comments, days=30)
-    model, topic_summary, df_named = run_topic_model(df=df_comments_recent_30)
-    topic_summary.to_csv("data/dashboard/topic_summary.csv", index=False)
-    """
+    model_30, topic_summary_30, df_named_30 = run_topic_model(df=df_comments_recent_30, min_cluster_size=10, min_samples=3)
+    topic_summary_30.to_csv("data/dashboard/topic_summary_30.csv", index=False)
+    # 90-day window
+    df_comments_recent_90 = filter_by_recent_days(df=df_comments, days=90)
+    model_90, topic_summary_90, df_named_90 = run_topic_model(df=df_comments_recent_90)
+    topic_summary_90.to_csv("data/dashboard/topic_summary_90.csv", index=False)
+    """ 
     # Viral Videos
     top5_weekly = get_top_viral_videos("data/filtered_data/comments_posts_transcripts.csv")
     top5_weekly.to_csv("data/dashboard/top5_weekly.csv", index=False)
-    """
     # Hashtag Analysis
     hashags_result_table = get_weekly_hashtag_trends('data/filtered_data/hashtags_posts.csv')
     hashags_result_table.to_csv("data/dashboard/hashags_result_table.csv", index=False)
@@ -96,23 +97,22 @@ if __name__ == "__main__":
     music = pd.read_csv("data/filtered_data/music.csv") 
     viralMusic = get_top5_trending_music(music)
     viralMusic.to_csv("data/dashboard/top5_viralMusic.csv", index=False)
-   
+  
     # Successful post drivrs
-    successful_posts_drivers(input_path= "data/filtered_data/posts_transcripts.csv")
-
+    successful_posts_drivers(input_path= "data/filtered_data/posts_transcripts.csv") 
 
     # Trend Detection 
     df_posts = pd.read_csv('data/filtered_data/posts_transcripts.csv')
-    df_posts_recent = filter_by_recent_days(df=df_posts, days=60)
+    df_posts_recent = filter_by_recent_days(df=df_posts, days=40)
     top_df, topics, trends = get_trends(df=df_posts, min_history=4)
     top_df.to_csv("data/dashboard/trend_top.csv")
     trends.to_csv("data/dashboard/trends.csv")
     print(topics)
     print(trends)
 
-    
+  
     df_posts = pd.read_csv('data/filtered_data/posts_transcripts.csv')
     df_posts_recent = filter_by_recent_days(df=df_posts, days=60)
     trend_tdidf = get_trending_keywords_with_tfidf(df_posts_recent)
     trend_tdidf.to_csv("data/dashboard/trends_tdidf.csv")
-    """
+    """ 

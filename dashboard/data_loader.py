@@ -14,7 +14,8 @@ NEGATIVE_FILL = "rgba(217, 108, 124, 0.23)"
 def load_data():
     weekly = pd.read_csv("data/dashboard/top5_weekly.csv", parse_dates=["date"])
 
-    clusters = pd.read_csv("data/dashboard/topic_summary.csv")
+    clusters_30 = pd.read_csv("data/dashboard/topic_summary_30.csv")
+    clusters_90 = pd.read_csv("data/dashboard/topic_summary_90.csv")
     hashtags = pd.read_csv("data/dashboard/hashags_result_table.csv")
     ingredients = pd.read_csv("data/dashboard/ingredients_results.csv")
     ingredients_example = pd.read_csv("data/dashboard/ingredients_examplecomments.csv")
@@ -33,10 +34,12 @@ def load_data():
 
     music = pd.read_csv("data/dashboard/top5_viralMusic.csv")
 
+    trends = pd.read_csv("data/dashboard/trends.csv")
+
     return (
-        weekly, clusters, hashtags, ingredients,
+        weekly, clusters_30,clusters_90, hashtags, ingredients,
         ingredients_example, successful_post_general, successful_post_author_fans,
         successful_post_hour_posting, successful_post_video_duration,
         successful_post_word_count, successful_post_is_ad,
-        brands, brands_examples, music
+        brands, brands_examples, music, trends
     )

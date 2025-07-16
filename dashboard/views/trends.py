@@ -16,8 +16,12 @@ def display_trends(df: pd.DataFrame):
     " or external events. Use these insights as directional indicators, not certainties.")
     st.markdown("")
     st.markdown("")
-    titles = ["dame Un Grrr", "morning routine", "korean skincare", "glow-up"] # ADJUST HERE 
-    deltas = ["↑ +82%",     "↑ +28%",          "↑ +25%",           "↑ +34%"]
+    df
+    
+    # Extract titles and deltas from dataframe
+    titles = df["Label"].tolist()
+    deltas = ["↑ +" + str(int(change * 100)) + "%" for change in df["2-week-change"]]
+
 
     cols = st.columns(4)
     for col, title, delta in zip(cols, titles, deltas):

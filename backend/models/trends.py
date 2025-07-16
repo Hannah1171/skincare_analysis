@@ -11,6 +11,66 @@ from burst_detection import burst_detection
 from scipy.stats import median_abs_deviation
 
 
+def get_trends(df: pd.DataFrame, min_history: int = 4):
+    """
+    Full trend detection pipeline:
+    1. Preprocess and cluster text into semantic topics.
+    2. Compute trends over time per topic.
+    3. Detect statistically significant trend shifts via z-scores and bursts.
+    4. Output top emerging trends with human-readable labels.
+    """
+
+    # 1. Filter to English posts and preprocess
+    df = df[df["textLanguage"] == "en"].copy()
+    df = preprocess_posts(df)
+    model, topics = train_topic_model(df["doc"].tolist())
+    df["topic"] = topics
+
+    # 2. Count number of unique days in dataset
+    num_days = df["date"].dt.normalize().nunique()
+
+    # 3. Build topic frequency time series
+    trend_df = model.topics_over_time(
+        docs=df["doc"].tolist(),
+        topics=topics,
+        timestamps=df["date"].tolist(),
+        nr_bins=num_days
+    )
+
+    # 4. Pre-filter: discard very low volume topics before scoring
+    min_volume = 10
+    active_topics = trend_df.groupby("Topic")["Frequency"].sum()
+    valid_topic_ids = active_topics[active_topics >= min_volume].index.tolist()
+    trend_df = trend_df[trend_df["Topic"].isin(valid_topic_ids)].copy()
+
+    # 5. Detect trends using z-score + burst detection
+    z_scores = detect_trends(
+        trend_df,
+        z_thresh=3.5,
+        smooth_win=3,
+        min_history=min_history
+    )
+
+    burst_scores = detect_bursts(
+        trend_df,
+        posts_df=df,
+        s=2.0,
+        gamma=1.0,
+        min_history=min_history
+    )
+
+    # 6. Combine Z-score and burst detections
+    combined_scores = {}
+    for tid in set(z_scores) | set(burst_scores):
+        z = z_scores.get(tid, 0)
+        burst = burst_scores.get(tid, 0)
+        combined_scores[tid] = max(z, burst)  # prioritize high score from either method
+
+    # 7. Label top trending topics
+    top_df = label_top_trends(combined_scores, model, df)
+
+    return top_df, topics, trend_df
+
 # Monkey patch for compatibility with old code
 if not hasattr(np, 'float'):
     np.float = float
@@ -84,8 +144,6 @@ def detect_trends(
             scores[topic_id] = float(z)
 
     return scores
-
-
 
 def detect_bursts(
     trend_df: pd.DataFrame,
@@ -164,7 +222,7 @@ def label_top_trends(trend_scores: dict[int, float],
 
     return pd.DataFrame(rows)
 
-def get_trends(df: pd.DataFrame, min_history: int = 4):
+def get_trends2(df: pd.DataFrame, min_history: int = 4):
     df = df[df["textLanguage"] == "en"].copy()
     df = preprocess_posts(df)
     model, topics = train_topic_model(df["doc"].tolist())

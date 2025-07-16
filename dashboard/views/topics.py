@@ -4,33 +4,63 @@ import plotly.graph_objects as go
 from data_loader import TIKTOK_PINK, POSITIVE_COLOR, NEUTRAL_COLOR, NEGATIVE_COLOR
 import pandas as pd
 
-def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
-    df = df[df["Topic"] != -1].copy()
-    df["Examples"] = df["Examples"].apply(ast.literal_eval)
-    total_mentions = df["Count"].sum()
+def display_collapsible_topics(df_30: pd.DataFrame, df_90: pd.DataFrame, max_quotes: int = 3):
+    """
+    Display AI-generated discussion topics from TikTok data, filtered by last 30 or 90 days.
+    Each topic is shown as a collapsible block with:
+    - Total mentions,
+    - Example TikTok user comments,
+    - Sentiment breakdown (positive, neutral, negative).
+    """
 
+    # Display main title and disclaimer for context
     st.header("💬 What does Gen Z talk about?")
     st.badge("DISCLAIMER", color='orange')
-    st.text("Please note that the topics on this page are generated automatically by AI clustering and may include noise or miss subtle nuances. This analysis covers only the posts we have collected (via specific hashtags), so some relevant content may be missing.")
-    
-    options = ["Last 30 days", "Last 60 days"]
-    selection = st.segmented_control(
-        label="Time Range",
-        options=options,
+    st.text(
+        "Please note that the topics on this page are generated automatically by AI clustering and may include noise "
+        "or miss subtle nuances. This analysis covers only the posts we have collected (via specific hashtags), so "
+        "some relevant content may be missing."
     )
 
+    # Radio button to select dataset (30 days or 90 days)
+    options = ["Last 30 days", "Last 90 days"]
+    selection = st.radio(
+        label="Select Time Range:",
+        options=options,
+        index=1  # Show "Last 90 days" by default
+    )
+
+    # Select dataframe according to user choice
+    if selection == "Last 30 days":
+        df = df_30.copy()
+    else:
+        df = df_90.copy()
+
+    # Filter out noise topics (Topic == -1)
+    df = df[df["Topic"] != -1].copy()
+
+    # Convert example comments from string to list
+    df["Examples"] = df["Examples"].apply(ast.literal_eval)
+
+    # Calculate total mentions for percentage calculations
+    total_mentions = df["Count"].sum()
+
+    # Prepare a 2-column layout for displaying topics
     cols = st.columns(2)
 
+    # Iterate over each topic and display it in alternating columns
     for idx, (_, row) in enumerate(df.iterrows()):
         col = cols[idx % 2]
         with col:
             topic_name = row.get("Name") or row.get("Name")
             count = int(row["Count"])
-            examples = row["Examples"][:max_quotes]
-            percent = min(count / total_mentions, 1.0) * 100
+            examples = row["Examples"][:max_quotes]  # Limit number of displayed example quotes
+            percent = min(count / total_mentions, 1.0) * 100  # Calculate share percentage
 
+            # Create collapsible section per topic
             with st.expander(topic_name):
-                # Header section
+
+                # Display total mentions and progress bar
                 col1, col2 = st.columns([1, 3])
                 with col1:
                     st.markdown(
@@ -47,9 +77,12 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
                         unsafe_allow_html=True
                     )
 
-                # Quotes section
-                st.markdown("<div style='color:#ee1d52; font-size:20px; font-weight:600; margin:0px 0;'>Voice of Gen Z</div>", unsafe_allow_html=True)
-                st.caption("Real comments from Tik Tok users")
+                # Display example TikTok user quotes
+                st.markdown(
+                    "<div style='color:#ee1d52; font-size:20px; font-weight:600; margin:0px 0;'>Voice of Gen Z</div>",
+                    unsafe_allow_html=True
+                )
+                st.caption("Real comments from TikTok users")
                 for quote in examples:
                     st.markdown(
                         f"<span style='font-size:16px; color:#ee1d52; font-weight:bold;'>&ldquo;&nbsp;</span>"
@@ -58,10 +91,14 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
                         unsafe_allow_html=True
                     )
 
-                # Sentiment section
-                st.markdown("<div style='color:#ee1d52; font-size:20px; font-weight:600; margin-top:6px;'>Sentiment</div>", unsafe_allow_html=True)
+                # Sentiment breakdown section
+                st.markdown(
+                    "<div style='color:#ee1d52; font-size:20px; font-weight:600; margin-top:6px;'>Sentiment</div>",
+                    unsafe_allow_html=True
+                )
                 st.caption("Share of comments that are positive, negative or neutral")
 
+                # Prepare data for sentiment pie chart
                 labels = ["Positive", "Neutral", "Negative"]
                 values = [
                     row.get("positive_share", 0) or 0,
@@ -70,10 +107,11 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
                 ]
                 colors = ["#6FBF73", "#B0B0B0", "#D96C7C"]
                 custom_labels = [
-                    f"<span style='font-weight:bold'>{label}</span><br>{int(value * 100)}%" 
+                    f"<span style='font-weight:bold'>{label}</span><br>{int(value * 100)}%"
                     for label, value in zip(labels, values)
                 ]
 
+                # Create pie chart using Plotly
                 fig = go.Figure(data=[
                     go.Pie(
                         labels=custom_labels,
@@ -92,7 +130,9 @@ def display_collapsible_topics(df: pd.DataFrame, max_quotes: int = 3):
                     showlegend=False
                 )
 
-                st.plotly_chart(fig, use_container_width=True)
-    st.markdown("")
-    st.markdown("")
+                # Display chart using unique key to avoid Streamlit element ID conflicts
+                st.plotly_chart(fig, use_container_width=True, key=f"sentiment_pie_{row['Topic']}")
 
+    # Add extra space after topic sections
+    st.markdown("")
+    st.markdown("")

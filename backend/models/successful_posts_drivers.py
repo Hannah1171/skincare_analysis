@@ -210,8 +210,12 @@ def regression_model(df, X_combined, additional_cols_final, vectorizer, addition
 
     y = df['viral_score']
 
-    idx = np.arange(X_combined.shape[0])
-    train_idx, test_idx = train_test_split(idx, test_size=0.2, random_state=42)
+    n_total = X_combined.shape[0]
+    split_point = int(n_total * 0.8)
+
+    # Assuming data is sorted chronologically (oldest first)
+    train_idx = np.arange(0, split_point)
+    test_idx = np.arange(split_point, n_total)
 
     X_train = X_combined[train_idx]
     X_test  = X_combined[test_idx]
@@ -318,14 +322,20 @@ def get_shap_values(shap_values, df_test_orig, test_idx):
 
 def classification_model_is_viral(df, X_combined):
     df = df.copy()
+    df = df.sort_values('createTimeISO').reset_index(drop=True)
     df['viral_score'] = np.log1p(df['playCount'])
     threshold = df['viral_score'].quantile(0.75)
     threshold = df['viral_score'].quantile(0.75)
     df['is_viral'] = (df['viral_score'] > threshold).astype(int)
     y = df['is_viral']
 
-    idx = np.arange(X_combined.shape[0])
-    train_idx, test_idx = train_test_split(idx, test_size=0.2, random_state=42)
+    n_total = X_combined.shape[0]
+    split_point = int(n_total * 0.8)
+
+    # Assuming data is sorted chronologically (oldest first)
+    train_idx = np.arange(0, split_point)
+    test_idx = np.arange(split_point, n_total)
+
 
     X_train = X_combined[train_idx]
     X_test  = X_combined[test_idx]

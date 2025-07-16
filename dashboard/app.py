@@ -34,18 +34,18 @@ def main():
 
     data = load_data()
     (
-        weekly, clusters, hashtags, ingredients_df,
+        weekly, clusters_30, clusters_90, hashtags, ingredients_df,
         ingredients_example, success_general, success_author_fans,
         success_hour, success_duration, success_wordcount,
-        success_isad, brands_df, brands_examples, music
+        success_isad, brands_df, brands_examples, music, top_trends
     ) = data
 
     if selected == "Home":
         home.display_home()
     elif selected == "Topics":
-        topics.display_collapsible_topics(df=clusters)
+        topics.display_collapsible_topics(df_30=clusters_30, df_90=clusters_90)
     elif selected == "Trends":
-        trends.display_trends(df=hashtags)
+        trends.display_trends(df=top_trends)
         st.markdown("""
         <br><br><br>
         """, unsafe_allow_html=True)

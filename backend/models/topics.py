@@ -14,18 +14,38 @@ from typing import List
 from gensim.models import CoherenceModel
 from gensim.corpora import Dictionary
 
+# Regex patterns to detect non-informative comments (e.g., compliments, vague requests)
+patterns = [
+    r"\blove (this|your|it)\b",
+    r"\bcan (you|u)\b",
+    r"\bthank you\b",
+    r"\bwhat the name\b",
+    r"\bwhere can (buy|get)\b",
+    r"\bpls do\b",
+]
 
-# Load LLM for topic name generation
+# Load LLM for topic label generation
 llm = pipeline("text2text-generation", model="google/flan-t5-large")
 
-# Sentence embedding model for label deduplication
-embedding_model = SentenceTransformer("all-mpnet-base-v2")  #('all-MiniLM-L6-v2')
+# Sentence embedding model for clustering and label deduplication
+embedding_model = SentenceTransformer("all-mpnet-base-v2")
 
-# Normalize topic labels for deduplication
+
+def is_non_informative(comment):
+    """Check if a comment matches common non-informative patterns."""
+    for pattern in patterns:
+        if re.search(pattern, comment, re.IGNORECASE):
+            return True
+    return False
+
+
 def normalize_label(label: str) -> str:
+    """Normalize topic label strings for deduplication (e.g., remove punctuation)."""
     return re.sub(r"[^\w\s]", "", label.lower()).strip()
 
+
 def compute_topic_coherence(model, texts, topn=10):
+    """Compute topic coherence using Gensim's C_V metric."""
     if isinstance(texts, pd.DataFrame):
         texts = texts["comment"].astype(str).apply(str.split).tolist()
     else:
@@ -42,27 +62,31 @@ def compute_topic_coherence(model, texts, topn=10):
     return dict(zip([tid for tid in model.get_topics() if tid != -1], scores))
 
 
-# Deduplicate similar topic labels using cosine similarity
 def deduplicate_labels(topic_df, threshold=0.9):
+    """Merge semantically similar topic labels based on cosine similarity of embeddings."""
     topic_df["NormName"] = topic_df["Name"].apply(normalize_label)
     embeddings = embedding_model.encode(topic_df["NormName"].tolist(), normalize_embeddings=True)
     sim_matrix = cosine_similarity(embeddings)
+
     label_map = {}
     for i in range(len(sim_matrix)):
         for j in range(i + 1, len(sim_matrix)):
             if sim_matrix[i, j] > threshold:
                 label_map[topic_df.loc[j, "Name"]] = topic_df.loc[i, "Name"]
+
     topic_df["Name"] = topic_df["Name"].replace(label_map)
     return topic_df
 
-# Filter topic keywords for LLM label generation
+
 def get_filtered_keywords(model, topic_id, common_words, top_n=5):
+    """Return a space-separated string of top-n filtered keywords for a topic."""
     topic_words = model.get_topic(topic_id)
     filtered = [w for w, _ in topic_words if w not in common_words]
     return " ".join(filtered[:top_n])
 
-# Generate a topic label using keywords and representative comments
+
 def generate_topic_label(keywords: str, examples: List[str]) -> str:
+    """Use LLM to generate a short, descriptive topic label based on keywords and example comments."""
     prompt = (
             "You are labeling clusters of social media skincare comments.\n"
             "Your task is to generate a short, clear topic name (1–3 words max) that summarizes the main theme of the entire cluster.\n"
@@ -84,9 +108,8 @@ def generate_topic_label(keywords: str, examples: List[str]) -> str:
         )
     return llm(prompt)[0]["generated_text"].strip()
 
-# Build and return a BERTopic model
 def build_topic_model(
-    embedding_model= embedding_model,
+    embedding_model=embedding_model,
     stopwords=None,
     min_cluster_size=20,
     min_samples=10,
@@ -94,6 +117,7 @@ def build_topic_model(
     use_umap=True,
     ngram_range=(1, 3),
 ):
+    """Configure and return a BERTopic model with UMAP + HDBSCAN pipeline."""
     if stopwords is None:
         stopwords = get_stopwords(langs=["en"])
 
@@ -102,8 +126,8 @@ def build_topic_model(
     hdbscan_model = HDBSCAN(
         min_cluster_size=min_cluster_size,
         min_samples=min_samples,
-        max_cluster_size=80,
-        metric="euclidean",  # cosine or euclidean
+        max_cluster_size=200,
+        metric="euclidean",
         cluster_selection_method="eom",
         prediction_data=True
     )
@@ -125,16 +149,18 @@ def build_topic_model(
         verbose=True
     )
 
-# Build topic metadata including LLM labels and keyword filtering
-def build_topic_metadata(df: pd.DataFrame, model, prob_col: str = "probability", include_time: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+
+def build_topic_metadata(df: pd.DataFrame, model, prob_col: str = "probability", include_time: bool = False):
+    """Generate metadata for each topic, including label, keywords, and example comments."""
     stopwords = get_stopwords(langs=["en"])
     common_words = set(stopwords) | {"skin", "use", "product", "care", "good", "thing", "help"}
+
     summaries, result_rows = [], []
     has_comment, has_words = "comment" in df.columns, "Words" in df.columns
     has_timestamp = "timestamp" in df.columns and include_time
 
     for topic_id in sorted(df["topic"].unique()):
-        subset = df[df["topic"] == topic_id] #.sort_values(prob_col, ascending=False)
+        subset = df[df["topic"] == topic_id]
 
         if topic_id == -1:
             label, examples, keywords = "Miscellaneous / Noise", [], ""
@@ -156,71 +182,71 @@ def build_topic_metadata(df: pd.DataFrame, model, prob_col: str = "probability",
     return pd.DataFrame(result_rows), pd.DataFrame(summaries)
 
 
-# Run and label topics for a cleaned DataFrame
-def run_topic_model(
-    df: pd.DataFrame,
-    text_col: str = "comment",
-    embedding_model=embedding_model,
-    min_cluster_size: int = 20,
-    min_samples: int = 5
-):
+def run_topic_model(df: pd.DataFrame, text_col: str = "comment", embedding_model=embedding_model, min_cluster_size: int = 20, min_samples: int = 5):
+    """Main function to clean data, run BERTopic, compute coherence, and label results."""
     df = df[df["textLanguage"] == "en"].copy()
     df[text_col] = df[text_col].astype(str)
 
-    # Remove rows containing any unwanted keywords (case-insensitive)
+    # Remove known noisy or branded terms
     pattern = r"sagajewels|jewelry|collaboration|collab"
     df = df[~df[text_col].str.contains(pattern, case=False, na=False)]
 
-    # Save original comment
+    # Store original comment before cleaning
     df["original_text"] = df[text_col]
 
-    # Clean comments
-    stopwords = get_stopwords(langs=["en"])
+    # Clean comment text
+    stopwords = get_stopwords(langs=["en"]) + ["skin", "skincare"]
     df["cleaned_text"] = df[text_col].apply(lambda x: clean_text(x, stopwords=stopwords))
 
-    # Filter and deduplicate
-    df_filtered = df[df["cleaned_text"].str.split().str.len() > 2]
+    # Filter by token count and remove spammy repeated words
+    df_filtered = df[df["cleaned_text"].str.split().str.len().between(3, 29)]
+    pattern = r'\b(\w+)(\s+\1){2,}\b'
+    df_filtered = df_filtered[~df_filtered['comment'].str.lower().str.contains(pattern, regex=True, na=False)]
+
+    # Remove non-informative comments
+    df_filtered = df_filtered[~df_filtered['comment'].apply(is_non_informative)]
+
+    # Drop duplicate cleaned comments
     df_unique = df_filtered.drop_duplicates(subset=["cleaned_text"])
 
-    # Extract cleaned texts
+    # Get cleaned comment list
     comments = df_unique["cleaned_text"].tolist()
 
-    # Build and fit topic model
+    # Train BERTopic model
     model = build_topic_model(
         embedding_model=embedding_model,
         stopwords=stopwords,
         min_cluster_size=min_cluster_size,
-        min_samples=min_samples,
-        language="english"
+        min_samples=min_samples
     )
-    
+
     topics, _ = model.fit_transform(comments)
 
-    # Coherence filtering
+    # Filter out low-coherence topics
     coherence_scores = compute_topic_coherence(model, df_unique)
     keep = {t for t, s in coherence_scores.items() if s >= 0.35}
     print(f"Dropped {len(coherence_scores) - len(keep)} low-coherence topics")
+    print(f"Mean coherence score: { sum(coherence_scores[t] for t in keep) / len(keep)}")
 
+    # Assign topic labels (or -1 for noise)
     df_unique["Topic"] = [t if t in keep else -1 for t in topics]
     df_unique["Words"] = df_unique["Topic"].map(
         lambda t: " ".join(w for w, _ in model.get_topic(t)) if t != -1 else ""
     )
 
-    # Merge on cleaned_text to keep original_text
+    # Merge back with original comments
     df_labeled = df_filtered.merge(
         df_unique[["cleaned_text", "Topic", "Words", "original_text"]],
         on="cleaned_text",
         how="left"
     )
 
-    # Topic statistics
+    # Prepare summary of each topic
     topic_counts = df_labeled["Topic"].value_counts().to_dict()
     examples = model.get_representative_docs()
     cleaned_to_original = dict(zip(df_unique["cleaned_text"], df_unique["original_text"]))
-
     valid_topic_ids = df_unique["Topic"].unique()
 
-    # Summary per topic
     topic_summary = []
     for topic_id in sorted(valid_topic_ids):
         words = model.get_topic(topic_id)
@@ -239,10 +265,8 @@ def run_topic_model(
     topic_summary = pd.DataFrame(topic_summary)
     topic_summary = deduplicate_labels(topic_summary, threshold=0.9)
 
-    # Compute sentiment distribution per topic (excluding -1 and NaNs)
+    # Sentiment distribution by topic
     valid_sentiment = df_labeled[df_labeled["Topic"].notna() & (df_labeled["Topic"] != -1)].copy()
-
-    # Count sentiments per topic and normalize to get shares
     sentiment_dist = (
         valid_sentiment.groupby(["Topic", "sentiment"])
         .size()
@@ -258,7 +282,7 @@ def run_topic_model(
 
     topic_summary = topic_summary.merge(sentiment_dist, on="Topic", how="left")
 
-    # Merge names and counts back to full labeled data
+    # Attach topic names and stats back to full labeled dataset
     df_named = df_labeled.merge(
         topic_summary[["Topic", "Name", "Count"]],
         on="Topic",
@@ -268,14 +292,15 @@ def run_topic_model(
     return model, topic_summary, df_named
 
 
-# Run hierarchical topic modeling (broad + subtopic levels)
 def generate_hierarchical_topics(df: pd.DataFrame, text_col: str = "comment") -> pd.DataFrame:
+    """Generate broad-level and nested subtopics using two-layer BERTopic modeling."""
     df[text_col] = df[text_col].astype(str)
     df_filtered = df[df[text_col].str.split().str.len() > 5]
     df_unique = df_filtered.drop_duplicates(subset=[text_col])
     documents = df_unique[text_col].tolist()
     stopwords = get_stopwords(langs=["en"])
 
+    # First layer: Broad topics
     broad_model = build_topic_model(stopwords=stopwords, min_cluster_size=70, min_samples=10)
     broad_topics, _ = broad_model.fit_transform(documents)
     df_unique["SuperTopicIndex"] = broad_topics
@@ -285,15 +310,18 @@ def generate_hierarchical_topics(df: pd.DataFrame, text_col: str = "comment") ->
         if super_topic == -1:
             continue
 
+        # Second layer: Subtopics within each broad topic
         sub_df = df_unique[df_unique["SuperTopicIndex"] == super_topic]
         sub_comments = sub_df[text_col].tolist()
 
         sub_model = build_topic_model(stopwords=stopwords, min_cluster_size=15, min_samples=5)
         sub_topics, _ = sub_model.fit_transform(sub_comments)
 
+        # Label broad topic
         super_keywords_str = " ".join(w for w, _ in broad_model.get_topics().get(super_topic, []))
         super_label = generate_topic_label(super_keywords_str, sub_comments[:3])
 
+        # Label subtopics
         for sub_id in sorted(set(sub_topics)):
             if sub_id == -1:
                 continue
