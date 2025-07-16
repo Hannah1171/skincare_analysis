@@ -107,7 +107,7 @@ def analyze_ingredient_sentiments(
 
 def get_top_example_comments(
     df_sentiment_exploded: pd.DataFrame,
-    min_mentions: int = 20,
+    min_mentions: int = 1,
     valid_sentiments: list = ["positive", "neutral", "negative"]
 ) -> pd.DataFrame:
     """
