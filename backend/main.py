@@ -45,7 +45,7 @@ def prepare_data(cache=True):
 
 
 if __name__ == "__main__":
-    """
+    
     # Pull data
     prepare_data(cache=False)
   
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # Hashtag Analysis
     hashags_result_table = get_weekly_hashtag_trends('data/filtered_data/hashtags_posts.csv')
     hashags_result_table.to_csv("data/dashboard/hashags_result_table.csv", index=False)
-    """
+
     # Ingredient Sentiment 
     
     ingredient_map = load_ingredient_map("data/static_data/Ingredient_mapping.csv") 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     brands_df.to_csv("data/dashboard/brand_sentiment_summary.csv", index=False)
     brands_examples_df.to_csv("data/dashboard/brand_sentiment_summary_examples.csv", index=False)
 
-    """
+    
     # Music Trends
     music = pd.read_csv("data/filtered_data/music.csv") 
     viralMusic = get_top5_trending_music(music)
@@ -105,4 +105,3 @@ if __name__ == "__main__":
     df_posts_recent = filter_by_recent_days(df=df_posts, days=40)
     top_df, topics, trends = get_trends(df=df_posts) # min_history=4
     top_df.to_csv("data/dashboard/trend_top.csv")
-    """

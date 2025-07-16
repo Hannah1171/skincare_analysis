@@ -59,7 +59,7 @@ def main():
         st.divider()
         ingredients.display_brand_sentiment_ui(df_sentiment=brands_df, df_examples=brands_examples)
     elif selected == "Viral Videos":
-        viral_videos.show_top_videos(df=weekly, date_col="date", title="🔥 Most Viral Skincare TikToks This Week")
+        viral_videos.show_top_videos(df=weekly, date_col="date", title="🔥 Most Viral Skincare TikToks This Week") # Please note that depending on access rights this could cause an error
     elif selected == "Successful Posts":
         successful_posts.display_successful_post_insights(
             success_general, success_author_fans, success_hour,
