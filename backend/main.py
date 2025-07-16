@@ -45,14 +45,14 @@ def prepare_data(cache=True):
 
 
 if __name__ == "__main__":
-    """ 
+
     # Pull data
     prepare_data(cache=False)
   
     # Sentiment Analysis
     df_comments = pd.read_csv('data/filtered_data/comments_posts_transcripts.csv')
     df_comments = run_sentiment_analysis_on_comments(df=df_comments, output_path='data/filtered_data/comments_sentiment.csv', batch_size=64)
-    """
+
     # Topic Modeling
     df_comments = pd.read_csv('data/filtered_data/comments_sentiment.csv')
     # 30-day window
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     df_comments_recent_90 = filter_by_recent_days(df=df_comments, days=90)
     model_90, topic_summary_90, df_named_90 = run_topic_model(df=df_comments_recent_90)
     topic_summary_90.to_csv("data/dashboard/topic_summary_90.csv", index=False)
-    """
+
     # Viral Videos
     top5_weekly = get_top_viral_videos("data/filtered_data/comments_posts_transcripts.csv")
     top5_weekly.to_csv("data/dashboard/top5_weekly.csv", index=False)
@@ -105,4 +105,3 @@ if __name__ == "__main__":
     df_posts_recent = filter_by_recent_days(df=df_posts, days=40)
     top_df, topics, trends = get_trends(df=df_posts) # min_history=4
     top_df.to_csv("data/dashboard/trend_top.csv")
-    """
