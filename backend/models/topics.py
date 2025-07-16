@@ -44,10 +44,10 @@ def normalize_label(label: str) -> str:
     return re.sub(r"[^\w\s]", "", label.lower()).strip()
 
 
-def compute_topic_coherence(model, texts, topn=10):
+def compute_topic_coherence(model, texts, text_col, topn=10):
     """Compute topic coherence using Gensim's C_V metric."""
     if isinstance(texts, pd.DataFrame):
-        texts = texts["comment"].astype(str).apply(str.split).tolist()
+        texts = texts[text_col].astype(str).apply(str.split).tolist()
     else:
         texts = [t.split() for t in texts]
 
@@ -150,13 +150,13 @@ def build_topic_model(
     )
 
 
-def build_topic_metadata(df: pd.DataFrame, model, prob_col: str = "probability", include_time: bool = False):
+def build_topic_metadata(df: pd.DataFrame, model, text_col, prob_col: str = "probability", include_time: bool = False):
     """Generate metadata for each topic, including label, keywords, and example comments."""
     stopwords = get_stopwords(langs=["en"])
     common_words = set(stopwords) | {"skin", "use", "product", "care", "good", "thing", "help"}
 
     summaries, result_rows = [], []
-    has_comment, has_words = "comment" in df.columns, "Words" in df.columns
+    has_comment, has_words = text_col in df.columns, "Words" in df.columns
     has_timestamp = "timestamp" in df.columns and include_time
 
     for topic_id in sorted(df["topic"].unique()):
@@ -165,7 +165,7 @@ def build_topic_metadata(df: pd.DataFrame, model, prob_col: str = "probability",
         if topic_id == -1:
             label, examples, keywords = "Miscellaneous / Noise", [], ""
         else:
-            examples = subset["comment"].head(4).tolist() if has_comment else []
+            examples = subset[text_col].head(4).tolist() if has_comment else []
             keywords = get_filtered_keywords(model, topic_id, common_words) if has_words and not subset.empty else ""
             label = generate_topic_label(keywords, examples)
 
@@ -201,10 +201,11 @@ def run_topic_model(df: pd.DataFrame, text_col: str = "comment", embedding_model
     # Filter by token count and remove spammy repeated words
     df_filtered = df[df["cleaned_text"].str.split().str.len().between(3, 29)]
     pattern = r'\b(\w+)(\s+\1){2,}\b'
-    df_filtered = df_filtered[~df_filtered['comment'].str.lower().str.contains(pattern, regex=True, na=False)]
+    df_filtered = df_filtered[~df_filtered[text_col].str.lower().str.contains(pattern, regex=True, na=False)]
 
     # Remove non-informative comments
-    df_filtered = df_filtered[~df_filtered['comment'].apply(is_non_informative)]
+    df_filtered = df_filtered[~df_filtered[text_col].str.lower().str.contains(pattern, regex=True, na=False)]
+    df_filtered = df_filtered[~df_filtered[text_col].apply(is_non_informative)]
 
     # Drop duplicate cleaned comments
     df_unique = df_filtered.drop_duplicates(subset=["cleaned_text"])
@@ -223,7 +224,7 @@ def run_topic_model(df: pd.DataFrame, text_col: str = "comment", embedding_model
     topics, _ = model.fit_transform(comments)
 
     # Filter out low-coherence topics
-    coherence_scores = compute_topic_coherence(model, df_unique)
+    coherence_scores = compute_topic_coherence(model, df_unique, text_col)
     keep = {t for t, s in coherence_scores.items() if s >= 0.35}
     print(f"Dropped {len(coherence_scores) - len(keep)} low-coherence topics")
     print(f"Mean coherence score: { sum(coherence_scores[t] for t in keep) / len(keep)}")
@@ -265,24 +266,26 @@ def run_topic_model(df: pd.DataFrame, text_col: str = "comment", embedding_model
     topic_summary = pd.DataFrame(topic_summary)
     topic_summary = deduplicate_labels(topic_summary, threshold=0.9)
 
-    # Sentiment distribution by topic
-    valid_sentiment = df_labeled[df_labeled["Topic"].notna() & (df_labeled["Topic"] != -1)].copy()
-    sentiment_dist = (
-        valid_sentiment.groupby(["Topic", "sentiment"])
-        .size()
-        .unstack(fill_value=0)
-        .apply(lambda row: row / row.sum(), axis=1)
-        .rename(columns={
-            "positive": "positive_share",
-            "negative": "negative_share",
-            "neutral": "neutral_share"
-        })
-        .reset_index()
-    )
+    # Only compute sentiment if working on comments
+    if text_col == "comment":
+        valid_sentiment = df_labeled[df_labeled["Topic"].notna() & (df_labeled["Topic"] != -1)].copy()
 
-    topic_summary = topic_summary.merge(sentiment_dist, on="Topic", how="left")
+        sentiment_dist = (
+            valid_sentiment.groupby(["Topic", "sentiment"])
+            .size()
+            .unstack(fill_value=0)
+            .apply(lambda row: row / row.sum(), axis=1)
+            .rename(columns={
+                "positive": "positive_share",
+                "negative": "negative_share",
+                "neutral": "neutral_share"
+            })
+            .reset_index()
+        )
 
-    # Attach topic names and stats back to full labeled dataset
+        topic_summary = topic_summary.merge(sentiment_dist, on="Topic", how="left")
+
+    # Always attach topic names and stats back to the full dataset
     df_named = df_labeled.merge(
         topic_summary[["Topic", "Name", "Count"]],
         on="Topic",
@@ -290,6 +293,7 @@ def run_topic_model(df: pd.DataFrame, text_col: str = "comment", embedding_model
     )
 
     return model, topic_summary, df_named
+
 
 
 def generate_hierarchical_topics(df: pd.DataFrame, text_col: str = "comment") -> pd.DataFrame:

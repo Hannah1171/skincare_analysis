@@ -85,16 +85,6 @@ def filter_by_recent_days(df, date_col="createTimeISO", days=30):
     df["date"] = df[date_col].dt.date
     return df
 
-
-def filter_past_30_days_2_weeks_ago(df, date_col="createTimeISO"):
-    df[date_col] = pd.to_datetime(df[date_col], utc=True, errors="coerce")
-    end_date = df[date_col].max() - pd.Timedelta(days=20)
-    start_date = end_date - pd.Timedelta(days=90)
-    df = df[(df[date_col] >= start_date) & (df[date_col] < end_date)].copy()
-    df["date"] = df[date_col].dt.date
-    return df
-
-
 def preprocess_text_column(df, text_col="text_comment", new_col="clean_text"):
     """Apply full text cleaning pipeline to a single column."""
     df[new_col] = df[text_col].apply(clean_text)

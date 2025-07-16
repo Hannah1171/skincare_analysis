@@ -3,9 +3,8 @@ import pandas as pd
 from backend.models.successful_posts_drivers import successful_posts_drivers
 from backend.models.trends import get_trends
 from backend.data_source.data_connection import load_comments_posts_transcript, load_posts_transcripts, load_hashtags_posts,load_posts_profiles, load_music
-from backend.preprocessing.preprocessing import filter_by_language, detect_language, filter_by_date, filter_by_recent_days, filter_past_30_days_2_weeks_ago
+from backend.preprocessing.preprocessing import filter_by_language, detect_language, filter_by_date, filter_by_recent_days
 from backend.models.sentiment import run_sentiment_analysis_on_comments
-from backend.models.trends_tdif import get_trending_keywords_with_tfidf
 from backend.models.viralvideos import get_top_viral_videos
 from backend.models.ingredients import analyze_ingredient_sentiments, get_top_example_comments
 from backend.preprocessing.ingredientsBeiersdorf import load_ingredient_map
@@ -46,7 +45,7 @@ def prepare_data(cache=True):
 
 
 if __name__ == "__main__":
-    """ 
+
     # Pull data
     prepare_data(cache=False)
   
@@ -104,15 +103,5 @@ if __name__ == "__main__":
     # Trend Detection 
     df_posts = pd.read_csv('data/filtered_data/posts_transcripts.csv')
     df_posts_recent = filter_by_recent_days(df=df_posts, days=40)
-    top_df, topics, trends = get_trends(df=df_posts, min_history=4)
+    top_df, topics, trends = get_trends(df=df_posts) # min_history=4
     top_df.to_csv("data/dashboard/trend_top.csv")
-    trends.to_csv("data/dashboard/trends.csv")
-    print(topics)
-    print(trends)
-
-  
-    df_posts = pd.read_csv('data/filtered_data/posts_transcripts.csv')
-    df_posts_recent = filter_by_recent_days(df=df_posts, days=60)
-    trend_tdidf = get_trending_keywords_with_tfidf(df_posts_recent)
-    trend_tdidf.to_csv("data/dashboard/trends_tdidf.csv")
-    """ 
