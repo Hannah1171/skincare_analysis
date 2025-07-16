@@ -1,19 +1,28 @@
-# skincare_analysis
+# Peaks & Pies and Beiersdorf: Analyzing skincare trends in Genz from TikTok Data
 
 
-This is a capstone project focused on skincare analysis using data science, NLP, and a Streamlit dashboard for visualization.
+This is a capstone project focused on skincare analysis using data science, NLP, and a Streamlit dashboard for visualization. TikTok Data is used and the data is scrapped and stored in Google Big Query
 
 ## 📁 Project Structure
-
+```
 ENV_CAPSTONE/
-├── .streamlit/ # Streamlit configuration files
-├── backend/ # Backend logic
-├── dashboard/ # Streamlit app frontend
-├── data/ # Raw and processed datasets
-├── notebooks/ # Jupyter notebooks for exploration and experimentation
-├── skincare/ # Skincare-specific modules or logic
-├── poetry.lock # Poetry dependency lockfile
-├── pyproject.toml # Project metadata and dependencies
+├── .streamlit/         # Streamlit configuration files
+├── .venv/              # Python 
+├── backend/            # Backend logic
+├── dashboard/          # Streamlit app frontend
+├── data/               # Raw and processed datasets
+├── include/            
+├── lib/              
+├── notebooks/          # Jupyter notebooks for exploration
+├── skincare/           # Skincare-specific modules or logic
+├── .gitignore
+├── .python-version
+├── log.txt            
+├── poetry.lock         # Poetry dependency lockfile
+└── pyproject.toml    
+
+ ```
+
 
 
 
