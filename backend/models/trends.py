@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from scipy.stats import median_abs_deviation
 from burst_detection import burst_detection
-
 from backend.preprocessing.preprocessing import get_stopwords, clean_text
 from backend.models.topics import (
     build_topic_model,
